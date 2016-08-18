@@ -1,0 +1,41 @@
+' {$STAMP BS2p}
+' {$PBASIC 2.5}
+IROut VAR byte
+SWout VAR Word
+x     VAR Byte
+x=0
+y     VAR Byte
+y=0
+
+AUXIO
+
+SEROUT 15,2,[27,76,0,1,"               "]
+SEROUT 15,2,[27,76,0,2,"               "]
+SEROUT 15,2,[27,76,0,3,"               "]
+SEROUT 15,2,[27,76,0,4,"               "]
+
+
+
+Main:
+BUTTON 7, 1, 255, 5, x, 1, add
+n2:
+BUTTON 4, 1, 255, 5, y, 1, add1
+
+Display:
+AUXIO
+SEROUT 15,2,[27,76,7,1,BIN2 IROut]
+GOTO Main
+
+add:
+DEBUG "6"
+IROut.BIT0 = 1
+DEBUG "7"
+GOTO n2
+
+
+add1:
+DEBUG "8"
+IROut.BIT1 = 1
+DEBUG "9"
+GOTO Display
+

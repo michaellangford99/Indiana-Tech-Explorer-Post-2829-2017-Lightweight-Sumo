@@ -1,0 +1,46 @@
+' {$STAMP BS2p}
+' {$PBASIC 2.5}
+
+IrDet          PIN     6                     ' I/O pin to IR detector output
+
+ThresholdStart CON 2400                  ' Binary 1 vs. start pulse
+ThresholdPulse CON 500  * 5 / 2          ' Binary 1 vs. 0 for PULSIN
+
+irPulse        VAR     Word                  ' Stores pulse widths
+remoteCode     VAR     Byte                  ' Stores remote code
+
+DO                                           ' Main DO...LOOP
+
+  GOSUB Get_Ir_Remote_Code                   ' Call remote code subroutine
+  SELECT remoteCode                          ' Select message to display
+    CASE 0 TO 9
+      HIGH 15
+    ENDSELECT
+
+LOOP                                         ' Repeat main DO...LOOP
+
+
+Get_Ir_Remote_Code:
+
+  remoteCode = 0
+      DO                                     ' Wait for start pulse.
+        PULSIN IrDet, 0, irPulse
+      LOOP UNTIL irPulse > ThresholdStart
+      PULSIN IrDet, 0, irPulse               ' Get data pulses.
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT0 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT1 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT2 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT3 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT4 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT5 = 1
+      PULSIN IrDet, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT6 = 1
+  ' Map digit keys to actual values.
+  IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
+  IF (remoteCode = 10) THEN remoteCode = 0
+  RETURN

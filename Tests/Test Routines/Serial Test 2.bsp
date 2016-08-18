@@ -1,0 +1,223 @@
+'{$STAMP BS2p}
+'{$PBASIC 2.5}
+
+MotR        CON        8         'Serial out pin for right motor
+MotL        CON        9         'Serial out pin for left motor
+Bmode       CON        16385     'Constant for 115,200 baud, 8 bit, no parity, inverted
+
+' --------------Variables------------------------
+'
+NewSpdRt     VAR       Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft   VAR       Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Pattern      VAR       Byte        'The Start pattern to be run
+Delay        VAR       Byte        'Counter
+IRout        VAR       Byte        'Sensor output to Branch
+C            VAR       Byte        'Counter
+RtHit        VAR       Word
+LtHit        VAR       Word
+NoHit        VAR       Word
+OtherHit     VAR       Word
+RightSearch  VAR       Bit
+
+' --------------Initializations------------------
+'
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+INPUT 12
+INPUT 13
+INPUT 14
+INPUT 15
+
+NewSpdRt = 127
+NewSpdLeft = 127
+Pattern = 0
+Delay = 0
+IRout = 0
+C = 0
+RtHit = 0
+LtHit = 0
+NoHit = 0
+OtherHit = 0
+
+
+'**************************************************************************
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+
+Main:
+FOR C = 127 TO 255
+NewSpdRt = C
+NewSpdLeft = 127
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 255 TO 127
+NewSpdRt = C
+NewSpdLeft = 127
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 127 TO 0
+NewSpdRt = C
+NewSpdLeft = 127
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 127
+NewSpdRt = C
+NewSpdLeft = 127
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+
+
+FOR C = 127 TO 255
+NewSpdRt = 127
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 255 TO 127
+NewSpdRt = 127
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 127 TO 0
+NewSpdRt = 127
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 127
+NewSpdRt = 127
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+
+
+
+FOR C = 127 TO 255
+NewSpdRt = C
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 255 TO 127
+NewSpdRt = C
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 127 TO 0
+NewSpdRt = C
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 40
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 127
+NewSpdRt = C
+NewSpdLeft = C
+GOSUB Drive
+PAUSE 25
+NEXT
+
+FOR C = 0 TO 400
+GOSUB Drive
+PAUSE 25
+NEXT
+
+
+
+
+
+
+
+
+GOTO Main
+
+
+'**************************************************************************
+'**************************************************************************
+'*********Motor Control****************************************************
+
+
+Drive:
+
+SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
+SEROUT MotL, Bmode, ["!G ",SDEC ((127-NewSpdLeft)<<3),CR]
+
+RETURN

@@ -1,0 +1,10 @@
+redesign print and test wheels
+new kill switch (remote)
+change search speed and radius
+review code
+new sensors!!!!!!!
+Test start routines
+test motors
+write tests for all parts of robot
+lots and lots of wheels and tires
+IF WE HAVE TIME AFTER WE HAVE ENOUGH WHEELS - make back plow, code once program is working well

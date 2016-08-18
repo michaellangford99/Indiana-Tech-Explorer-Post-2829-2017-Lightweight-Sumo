@@ -1,0 +1,26 @@
+Serout Right motor         : 8
+Serout Left motor          : 9
+
+Right IR Sensor            : 1
+Right center IR Sensor     : 2
+Center IR Sensor           : 3
+Left Center IR Sensor      : 4
+Left IR Sensor             : 5
+
+Ir Recieve  Sensor         : 6
+
+Toggle switch -Left        : AUX 5
+Toggle switch -Right       : AUX 6
+
+Start Routine increase     : AUX 7
+Start Routine decrease     : AUX 4
+
+LCD Serial RX pin          : AUX 15
+
+Remote Kill                : AUX 0
+			   : AUX 1
+			   : AUX 2
+			   : AUX 3
+
+BR Kill Switch             : AUX 14
+

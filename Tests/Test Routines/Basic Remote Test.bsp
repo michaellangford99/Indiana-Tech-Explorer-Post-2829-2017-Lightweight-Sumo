@@ -1,0 +1,16 @@
+'{$STAMP BS2pe}
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+
+DEBUG CLS, "Hello World"
+PAUSE 1000
+main
+DEBUG CLS, BIN1 IN0, " ", BIN4 IND
+
+PAUSE 50
+
+GOTO main

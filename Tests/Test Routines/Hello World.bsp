@@ -1,0 +1,8 @@
+'{$STAMP BS2p}
+DEBUG  "Hello World"
+PAUSE 1000
+main
+
+PAUSE 50
+
+GOTO main

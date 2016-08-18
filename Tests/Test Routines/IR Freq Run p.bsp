@@ -1,0 +1,45 @@
+'{$STAMP BS2p}
+'  IR frequency run 3-2-16  try each frequency 10 times.  Vary Frequency
+'  between 36 kHz and 42 kHz by 100 Hz.  Print total hits per Frequency.
+
+'5-10500
+'4-10400
+'3-10600
+'2-10600
+'1-10400
+
+
+F VAR Word
+C VAR Word
+T VAR Word
+T1 VAR Word
+LOW  5    'left          input pin 6
+LOW  4    'left-center   input pin 6
+LOW  3    'center        input pin 6
+LOW  2    'right-center  input pin 6
+LOW  1    'right         input pin 6
+
+
+DEBUG CLS, "Frequency    # of Contacts", CR
+
+FOR F = 9000 TO 11000 STEP 100
+
+T = 0
+
+FOR C = 1 TO 10
+
+FREQOUT 1,2,F
+T1 = IN6
+IF T1 = 1 THEN pass
+T = T + 1
+
+pass
+PAUSE 10
+
+NEXT
+
+DEBUG DEC F, "              ", DEC T, CR
+
+NEXT
+
+STOP
