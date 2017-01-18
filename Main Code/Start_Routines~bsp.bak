@@ -255,7 +255,7 @@ IROUT.BIT1 = IN6
 FREQOUT 5, 2, 10725   'Left IR sensor
 IROUT.BIT0 = IN6
 
-'Uncomment for debugging purposes
+'Uncomment for debugging purposes, will blind the sensors
 'IRout = 31
 
 

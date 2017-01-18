@@ -274,10 +274,10 @@ RETURN
 
 Kill:
        AUXIO
-       IF IN0 = 1 THEN GOTO Redlight
-       IF IN1 = 1 THEN GOTO Redlight
-       IF IN2 = 1 THEN GOTO Redlight
-       IF IN3 = 1 THEN GOTO Redlight
+       IF (IN0 = 1) THEN GOTO Redlight
+       IF (IN1 = 1) THEN GOTO Redlight
+       IF (IN2 = 1) THEN GOTO Redlight
+       IF (IN3 = 1) THEN GOTO Redlight
 
        IF IN14 = 0 THEN
         PAUSE 20

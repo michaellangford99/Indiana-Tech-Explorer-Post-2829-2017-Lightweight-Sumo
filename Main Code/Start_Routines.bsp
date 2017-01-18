@@ -255,7 +255,7 @@ IROUT.BIT1 = IN6
 FREQOUT 5, 2, 10725   'Left IR sensor
 IROUT.BIT0 = IN6
 
-'Uncomment for debugging purposes
+'Uncomment for debugging purposes, will blind the sensors
 'IRout = 31
 
 
@@ -275,9 +275,9 @@ Kill:
        IF (IN2 = 1) THEN GOTO Redlight
        IF (IN3 = 1) THEN GOTO Redlight
 
-       IF IN14 = 0 THEN
+       IF (IN14 = 0) THEN
         PAUSE 20
-        IF IN14 = 0 THEN
+        IF (IN14 = 0) THEN
           GOTO Redlight
         ENDIF
        ENDIF
