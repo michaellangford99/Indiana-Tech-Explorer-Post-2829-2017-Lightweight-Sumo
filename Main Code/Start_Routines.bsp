@@ -259,7 +259,7 @@ IROUT.BIT0 = IN6
 'IRout = 31
 
 
-IF IRout.BIT1 = 0 OR IRout.BIT2 = 0 OR IRout.BIT3 = 0 THEN RUN 2
+IF (IRout.BIT1 = 0) OR (IRout.BIT2 = 0) OR (IRout.BIT3 = 0) THEN RUN 2
                                    'Check for sensor hits on three center sensors
 RETURN
 

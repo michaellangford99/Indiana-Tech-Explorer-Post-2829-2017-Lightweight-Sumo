@@ -33,7 +33,7 @@ INPUT 0
 INPUT 1
 INPUT 2
 INPUT 3
-'HIGH 14                            ' drive high Kill switch button
+'HIGH 14                            ' uncomment drive high Kill switch button
 
 IRout = 0
 Pattern = 1
