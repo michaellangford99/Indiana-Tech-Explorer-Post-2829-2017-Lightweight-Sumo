@@ -116,12 +116,12 @@ RETURN
 
 Branching:
 
-IF IRout = 0 THEN C = C + 1
-IF IRout = 1 THEN C = C + 1
-IF IRout = 3 THEN C = C + 1
-IF IRout = 16 THEN C = C + 1
-IF IRout = 17 THEN C = C + 1
-IF IRout = 24 THEN C = C + 1
+IF IRout = 0 THEN C = C + 1          '00000
+IF IRout = 1 THEN C = C + 1          '00001
+IF IRout = 3 THEN C = C + 1          '00011
+IF IRout = 16 THEN C = C + 1         '10000
+IF IRout = 17 THEN C = C + 1         '10001
+IF IRout = 24 THEN C = C + 1         '11000
 
 IF C > 4 THEN RUN 3
 
@@ -285,10 +285,10 @@ RETURN
 
 Kill:
        AUXIO
-       IF IN0 = 1 THEN GOTO Redlight
-       IF IN1 = 1 THEN GOTO Redlight
-       IF IN2 = 1 THEN GOTO Redlight
-       IF IN3 = 1 THEN GOTO Redlight
+       IF (IN0 = 1) THEN GOTO Redlight
+       IF (IN1 = 1) THEN GOTO Redlight
+       IF (IN2 = 1) THEN GOTO Redlight
+       IF (IN3 = 1) THEN GOTO Redlight
 
        IF IN14 = 0 THEN
         PAUSE 20

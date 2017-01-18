@@ -14,11 +14,6 @@ IRout        VAR       Byte        'Sensor output to Branch
 NewSpdRt     VAR       Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
 NewSpdLeft   VAR       Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
 Delay        VAR       Byte        'Counter
-C            VAR       Byte        'Counter
-RtHit        VAR       Word
-LtHit        VAR       Word
-NoHit        VAR       Word
-OtherHit     VAR       Word
 
 ' --------------Initializations------------------
 '
@@ -40,13 +35,6 @@ NewSpdLeft = 127
 Pattern = 0
 Delay = 0
 IRout = 0
-C = 0
-RtHit = 0
-LtHit = 0
-NoHit = 0
-OtherHit = 0
-
-
 
 '**************************************************************************
 '**************************************************************************
@@ -114,84 +102,7 @@ RETURN
 '***************Branching**************************************************
 
 
-Branching:
-
-IF IRout = 0 THEN C = C + 1          '00000
-IF IRout = 1 THEN C = C + 1          '00001
-IF IRout = 3 THEN C = C + 1          '00011
-IF IRout = 16 THEN C = C + 1         '10000
-IF IRout = 17 THEN C = C + 1         '10001
-IF IRout = 24 THEN C = C + 1         '11000
-
-IF C > 4 THEN RUN 3
-
-'Test**********************************************************************
-'Test**********************************************************************
-'OtherHit = 0: LtHit = 0: RtHit = 0: NoHit = 0'                          **
-'IRout = 31              'Use for testing motor constants                **
-                        '0  for Straight                                 **
-                        '12 for Hard Right                               **
-                        '5  for Hard Left                                **
-                        '8  for Std Right                                **
-                        '2  for Std Left                                 **
-                        '9  for Easy Right                               **
-                        '18  for Easy Left                               **
-                        '26 for Search Right                             **
-                        '11 for Search Left                              **
-                        '10 for Search                                   **
-'Test**********************************************************************
-'Test**********************************************************************
-
-BRANCH IRout, [Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, RightHit, RightHit, RightHit, NotaHit]
-'0 = hit       00000  00001  00010  00011  00100  00101  00110  00111    01000  01001  01010  01011  01100  01101  01110  01111    10000  10001  10010  10011  10100  10101  10110  10111    11000  11001  11010  11011  11100     11101     11110     11111
-
-Other:
-OtherHit = OtherHit + 1
-IF OtherHIT < 4 THEN BranchAgain
-OtherHit = 0: LtHit = 0: RtHit = 0: NoHit = 0
-GOTO BranchAgain
-
-LeftHit:
-LtHit = LtHit + 1
-IF LtHIT < 2 THEN BranchAgain
-OtherHit = 0: RtHit = 0: NoHit = 0
-IF LtHIT < 200 THEN BranchAgain    '45 is about six to seven seconds
-FOR Delay = 1 TO 5
-NewSpdLeft = 0                     'Drive backwards for about eight
-NewSpdRt = 95                      'inches as the controller changes speeds
-LtHit = 25                         'If no change, do again in two seconds
-GOSUB Drive
-NEXT
-RETURN                             'Return to main program
-
-RightHit:
-RtHit = RtHit + 1
-IF RtHIT < 2 THEN BranchAgain
-OtherHit = 0: LtHit = 0: NoHit = 0
-IF RtHIT < 200 THEN BranchAgain    '45 is about six to seven seconds
-FOR Delay = 1 TO 5
-NewSpdLeft = 95                    'Drive backwards for about eight
-NewSpdRt = 0                       'inches as the controller changes speed
-RtHit = 25
-GOSUB Drive
-NEXT
-RETURN                             'Return to main program
-
-
-NotaHit:
-NoHit = NoHit + 1
-IF NoHIT < 2 THEN BranchAgain
-OtherHit = 0: LtHit = 0: RtHit = 0
-IF NoHiT < 300 THEN BranchAgain    '100 is about eleven seconds
-NoHit = 0                          'Zero out counter
-FOR Delay = 1 TO 5
-NewSpdLeft = 0                     'Drive backwards for about
-NewSpdRt = 0                       'a foot as the controller
-GOSUB Drive                        'changes speeds
-NEXT                               'Pause 1 sec for a total of 3 1/2 feet backwards
-RETURN                             'Return to main program
-
-BranchAgain:
+Branching:  
 BRANCH IRout, [Straight,EasyLeft,Left, Left, Straight,HardLeft,HardLeft,HardLeft,Right,EasyRight,Search,SearchLeft,HardRight,Search,Search,SlowLeft,EasyRight,Straight,EasyLeft,EasyLeft,HardRight,Search,Search,Left, Right,EasyRight,SearchRight,StraightR,HardRight,Right,SlowRight,Search]
 '0 = hit       00000    00001    00010 00011 00100    00101    00110    00111    01000 01001     01010  01011      01100     01101  01110  01111      10000     10001    10010    10011    10100     10101  10110  10111 11000 11001     11010       11011     11100     11101 11110       11111
 
