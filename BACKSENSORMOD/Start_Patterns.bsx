@@ -1,0 +1,276 @@
+'{$STAMP BS2sx}
+'{$PBASIC 2.5}
+
+SPin        CON        16          'Serial out pin
+Bmode       CON        24816       'Constant for 9600 baud, 7 bit, even parity, inverted
+                                   '24660 for BS2, 24816 for BS2SX
+RFWD        CON        "B"         'Right motor, forward command
+RBAK        CON        "b"         'Right motor, reverse command
+LFWD        CON        "a"         'Left motor, forward command
+LBAK        CON        "A"         'Left motor, reverse command
+StartDelay   CON       0           'Delay in tenths of a second
+
+' --------------Variables------------------------
+'
+NewSpdRt     VAR       Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft   VAR       Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Pattern      VAR       Byte        'The Start pattern to be run
+Delay        VAR       Byte        'Counter
+IRoutFront   VAR       Byte        'Sensor output to Branch
+IRoutBack    VAR       Byte        'Sensor output to Branch
+C            VAR       Byte        'Counter
+C2           VAR       Byte        'Counter
+RtHit        VAR       Word
+LtHit        VAR       Word
+NoHit        VAR       Word
+OtherHit     VAR       Word
+RtHitB       VAR       Word
+LtHitB       VAR       Word
+NoHitB       VAR       Word
+OtherHitB    VAR       Word
+hitcount1    VAR       Nib
+hitcount2    VAR       Nib
+RightSearch  VAR       Bit
+
+' --------------Initializations------------------
+'
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+INPUT 12
+INPUT 13
+INPUT 14
+INPUT 15
+
+NewSpdRt = 128                     'Set right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft = 128                   'Set left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+
+Pattern = 0
+Delay = 0
+IRoutFront = 0
+IRoutBack = 0
+RtHit = 0
+LtHit = 0
+NoHit = 0
+OtherHit = 0
+RightSearch = 0
+
+
+'**************************************************************************
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+GET 0, Pattern                     'Retrieve the existing pattern from Scratch RAM
+IF Pattern <> 0 THEN Start         'If there is nothing in Scratch Ram, Then
+RUN 2                              'go directly to the Search and Destroy program
+
+Start:
+        PAUSE StartDelay*100               'Start delay
+        WRITE 0, 0                         'Clear old pattern from EEPROM so that another reset will not rerun the old start pattern
+        GET 0, Pattern                     'Retrieve the existing pattern from Scratch RAM
+
+
+RightSearch = Pattern.LOWBIT       'Retrieve RightSearch from Pattern
+Pattern = Pattern/2                'Shift right one bit so that Pattern is correct
+
+
+BRANCH Pattern, [BackAttack, BackAttack, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head]
+
+'Situations 1, 2: Side-by-side, facing same direction, 1ft apart / touching
+BackAttack:
+  FOR Delay = 1 TO 45              'Quick backup with slight turn
+    NewSpdRt = 100 - (RightSearch*40)
+    NewSpdLeft = 60 + (RightSearch*40)
+    GOSUB Drive
+  NEXT
+
+  FOR Delay = 1 TO 25              'Charge forward
+    NewSpdRt = 255
+    NewSpdLeft = 255
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+
+  RUN 2                            'Search Mode
+
+'Situation 3: Side-by-side, facing opposite directions, 1ft apart
+TurnKill:
+  FOR Delay = 1 TO (8 + (RightSearch*2))              'Immediate 90 deg turn
+    NewSpdRt = 230 - (RightSearch*215)     'Right should equal 15
+    NewSpdLeft = 15 + (RightSearch*215)    'right should equal 230
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+
+  RUN 2                            'Search Mode
+
+'Situation 4: Side-by-side, facing opposite directions, touching
+ForwardSearch:
+  FOR Delay = 1 TO 5              'Forward 2ft
+    NewSpdRt = 240
+    NewSpdLeft = 240
+    GOSUB Drive
+  NEXT
+
+  RUN 2                            'Search Mode
+
+'Situation 5, 6: Front-to-front, 1ft apart / touching
+Charge:
+  FOR Delay = 1 TO 30
+    NewSpdRt = 255
+    NewSpdLeft = 255
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+
+  RUN 2
+
+'Situation 7, 8: Back-to-back, 1ft apart / touching
+OutAndBack:
+  'go forward
+  FOR Delay = 1 TO 10
+    NewSpdRt = 255
+    NewSpdLeft = 255
+    GOSUB Drive
+  NEXT
+  'turn 180
+  FOR Delay = 1 TO 17
+    NewSpdLeft = 50 + (rightsearch*155)
+    NewSpdRt = 205 - (rightsearch*155)
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+  'go forward
+  FOR Delay = 1 TO 25
+    NewSpdRt = 255
+    NewSpdLeft = 255
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+  RUN 2
+
+'Situation 9: Front-to-front, 1ft apart / touching
+Head2Head:
+  FOR Delay = 1 TO 10              'Immediate 90 deg turn to the left
+    NewSpdRt = 240
+    NewSpdLeft = 15
+    GOSUB Drive
+  NEXT
+
+  FOR Delay = 1 TO 12              'Backward 2ft
+    NewSpdRt = 15
+    NewSpdLeft = 15
+    GOSUB Drive
+  NEXT
+
+  RUN 2
+
+
+
+'**************************************************************************
+'**************************************************************************
+'*********Motor Control****************************************************
+
+
+Drive:
+
+GOSUB Kill
+
+IF NewSpdRt > 127 THEN
+SEROUT SPin, Bmode, [ "!", RFWD, HEX2 (NewSpdRt-128), CR ]
+ELSE
+SEROUT SPin, Bmode, [ "!", RBAK, HEX2 (127-NewSpdRt), CR ]
+ENDIF
+
+IF NewSpdLeft > 127 THEN
+SEROUT SPin, Bmode, [ "!", LFWD, HEX2 (NewSpdLeft-128), CR ]
+ELSE
+SEROUT SPin, Bmode, [ "!", LBAK, HEX2 (127-NewSpdLeft), CR ]
+ENDIF
+
+RETURN
+
+
+'**************************************************************************
+'**************************************************************************
+'*************Check Sensors************************************************
+
+
+Sensors:
+
+'*****front******************************************************************************'
+FREQOUT 3, 1, 15465                'Center IR sensor
+IROUTFRONT.BIT2 = IN6
+
+FREQOUT 2, 1, 15485               'Left Center IR sensor
+IROUTFRONT.BIT3 = IN6
+
+FREQOUT 4, 1, 14897                'Right Center IR sensor
+IROUTFRONT.BIT1 = IN6
+
+FREQOUT 1, 1, 15550                'Left IR sensor
+IROUTFRONT.BIT4 = IN6
+
+FREQOUT 5, 1, 15455                'Right IR sensor
+IROUTFRONT.BIT0 = IN6
+
+'*****back*******************************************************************************'
+'use the same transmitter pins, but we will use a different reciever for the back'
+FREQOUT 3, 1, 15465                'Center IR sensor
+IROUTBACK.BIT2 = IN12
+
+FREQOUT 2, 1, 15485               'Left Center IR sensor
+IROUTBACK.BIT3 = IN12
+
+FREQOUT 4, 1, 14897                'Right Center IR sensor
+IROUTBACK.BIT1 = IN12
+
+FREQOUT 1, 1, 15550                'Left IR sensor
+IROUTBACK.BIT4 = IN12
+
+FREQOUT 5, 1, 15455                'Right IR sensor
+IROUTBACK.BIT0 = IN12
+
+
+IF IROUTFRONT.BIT1 = 1 AND IROUTFRONT.BIT2 = 1 AND IROUTFRONT.BIT3 = 1 THEN Continue
+IF IROUTBACK.BIT1 = 1 AND IROUTBACK.BIT2 = 1 AND IROUTBACK.BIT3 = 1 THEN Continue
+                                   'Check for sensor hits one three center sensors
+RUN 2
+Continue:
+
+RETURN
+
+
+
+
+
+
+'**************************************************************
+'*****************************Kill*****************************
+'**************************************************************
+
+Kill:
+       IF IND = 0 AND IN11=1 THEN
+       RETURN
+       ELSE
+       PAUSE 20
+       IF IND = 0 AND IN11=1 THEN
+       RETURN
+       ELSE
+Redlight:
+       SEROUT 16, 24816, [ "!", "B", HEX2 0, CR ]
+       SEROUT 16, 24816, [ "!", "a", HEX2 0, CR ]
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,5,0,"DEAD DEAD"]
+        SEROUT 0,2,[27,76,7,1,BIN5 IRoutFront]
+        SEROUT 0,2,[27,76,7,2,BIN5 IRoutBack]
+       PAUSE 100
+       GOTO redlight
+       ENDIF
+       ENDIF
+
+RETURN

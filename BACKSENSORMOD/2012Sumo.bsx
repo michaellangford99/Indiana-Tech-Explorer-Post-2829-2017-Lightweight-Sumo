@@ -1,0 +1,187 @@
+'{$STAMP BS2sx, Start_Patterns.bsx, Search.bsx, Destroy.bsx, BackDestroy.bsx}
+'{$PBASIC 2.5}
+
+
+' --------------Variables------------------------
+'
+Time        VAR        Word        'Button push time accumulator
+Pattern     VAR        Byte        'The Start pattern to be run
+C           VAR        Byte        'Counter
+C2          VAR        Byte        'Counter
+D           VAR        Byte        'Counter
+IRoutFront  VAR        Byte        'Sensor output to Branch
+IRoutBack   VAR        Byte        'Sensor output to Branch
+
+
+
+' --------------Initializations------------------
+'
+LOW 1                              'Preset sensors and outputs
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+IROUTFRONT = 0
+Pattern = 1
+
+'Check for reset
+
+      IF IN7=0  THEN  RUN 2
+      IF IN8=0  THEN  RUN 2
+
+
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+Main:
+GOSUB Kill
+
+GOSUB Sensors
+
+GOSUB PushButton
+
+GOSUB Display
+ PAUSE 200
+
+GOTO Main
+
+'**************************************************************************
+'**************************************************************************
+'***************Check IR sensors*******************************************
+
+
+Sensors:
+
+'*****front******************************************************************************'
+FREQOUT 3, 1, 15465                'Center IR sensor
+IROUTFRONT.BIT2 = IN6
+
+FREQOUT 2, 1, 15485               'Left Center IR sensor
+IROUTFRONT.BIT3 = IN6
+
+FREQOUT 4, 1, 14897                'Right Center IR sensor
+IROUTFRONT.BIT1 = IN6
+
+FREQOUT 1, 1, 15550                'Left IR sensor
+IROUTFRONT.BIT4 = IN6
+
+FREQOUT 5, 1, 15455                'Right IR sensor
+IROUTFRONT.BIT0 = IN6
+
+'*****back*******************************************************************************'
+'use the same transmitter pins, but we will use a different reciever for the back'
+FREQOUT 3, 1, 15465                'Center IR sensor
+IROUTBACK.BIT2 = IN12
+
+FREQOUT 2, 1, 15485               'Left Center IR sensor
+IROUTBACK.BIT3 = IN12
+
+FREQOUT 4, 1, 14897                'Right Center IR sensor
+IROUTBACK.BIT1 = IN12
+
+FREQOUT 1, 1, 15550                'Left IR sensor
+IROUTBACK.BIT4 = IN12
+
+FREQOUT 5, 1, 15455                'Right IR sensor
+IROUTBACK.BIT0 = IN12
+
+RETURN
+
+
+PushButton:
+
+      IF IN7=0  THEN
+        PUT 0,Pattern*2+1
+          RUN 1
+          ENDIF
+      IF IN8=0  THEN
+        PUT 0,Pattern*2
+          RUN 1
+          ENDIF
+      IF IN9=0 THEN
+           Pattern= Pattern+1
+          IF Pattern= 7 THEN Pattern=1
+          ENDIF
+      IF IN10=0 THEN
+           Pattern= Pattern-1
+          IF Pattern=1 THEN Pattern=7
+          ENDIF
+
+RETURN
+
+Display:
+
+      IF Pattern=1 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0," BackAttack "]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+      IF Pattern=2 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0,"  TurnKill  "]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+      IF Pattern=3 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0,"Frwd+Search"]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+      IF Pattern=4 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0,"   Charge   "]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+      IF Pattern=5 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0,"  Out+Back  "]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+      IF Pattern=6 THEN
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,4,0,"  Head2Head "]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+      ENDIF
+
+RETURN
+
+Kill:
+       IF IN11=1 THEN
+       RETURN
+       ELSE
+       PAUSE 20
+       IF IN11=1 THEN
+       RETURN
+       ELSE
+Redlight:
+       SEROUT 16, 24816, [ "!", "B", HEX2 0, CR ]
+       SEROUT 16, 24816, [ "!", "a", HEX2 0, CR ]
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,5,0,"DEAD DEAD"]
+        SEROUT 0,2,[27,76,7,1,BIN5 IROUTFRONT]
+        SEROUT 0,2,[27,76,7,2,BIN5 IROUTBACK]
+       PAUSE 100
+       GOTO redlight
+       ENDIF
+       ENDIF
+
+RETURN
+
+
+
+
+'Inputs:'
+
+
+'IN7           'start left switch'
+'IN8           'start right swith'
+'IN9           'up button
+'IN10          'down button'
+'IN11          'kill swith'
+'IN12-IN15     'remote control'

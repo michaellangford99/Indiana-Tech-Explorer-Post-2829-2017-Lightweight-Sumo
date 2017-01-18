@@ -1,0 +1,307 @@
+'{$STAMP BS2sx}
+'{$PBASIC 2.5}
+
+SPin        CON        16         'Serial out pin
+Bmode       CON        24816      'Constant for 9600 baud, 7 bit, even parity, inverted
+                                  '24660 for BS2, 24816 for BS2SX
+RFWD        CON        "B"        'Right motor, forward command
+RBAK        CON        "b"        'Right motor, reverse command
+LFWD        CON        "a"        'Left motor, forward command
+LBAK        CON        "A"        'Left motor, reverse command
+
+' --------------Variables------------------------
+'
+NewSpdRt     VAR       Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft   VAR       Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Pattern      VAR       Byte        'The Start pattern to be run
+Delay        VAR       Byte        'Counter
+IRoutFront   VAR       Byte        'Sensor output to Branch
+IRoutBack    VAR       Byte        'Sensor output to Branch
+C            VAR       Byte        'Counter
+C2           VAR       Byte        'Counter
+RtHit        VAR       Word
+LtHit        VAR       Word
+NoHit        VAR       Word
+OtherHit     VAR       Word
+RtHitB       VAR       Word
+LtHitB       VAR       Word
+NoHitB       VAR       Word
+OtherHitB    VAR       Word
+hitcount1    VAR       Nib
+hitcount2    VAR       Nib
+RightSearch  VAR       Bit
+
+' --------------Initializations------------------
+'
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+INPUT 12
+INPUT 13
+INPUT 14
+INPUT 15
+
+NewSpdRt = 128
+NewSpdLeft = 128
+Pattern = 0
+Delay = 0
+IRoutFront = 0
+IRoutBack = 0
+C = 0
+C2 = 0
+RtHit = 0
+LtHit = 0
+NoHit = 0
+OtherHit = 0
+
+
+'**************************************************************************
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+
+Main:
+GOSUB Sensors
+GOSUB Branching
+GOSUB Drive
+GOSUB Kill
+PAUSE 10
+GOTO Main
+
+
+'**************************************************************************
+'**************************************************************************
+'*********Motor Control****************************************************
+
+
+Drive:
+
+IF NewSpdRt > 127 THEN
+SEROUT SPin, Bmode, [ "!", RFWD, HEX2 (NewSpdRt-128), CR ]
+ELSE
+SEROUT SPin, Bmode, [ "!", RBAK, HEX2 (127-NewSpdRt), CR ]
+ENDIF
+
+IF NewSpdLeft > 127 THEN
+SEROUT SPin, Bmode, [ "!", LFWD, HEX2 (NewSpdLeft-128), CR ]
+ELSE
+SEROUT SPin, Bmode, [ "!", LBAK, HEX2 (127-NewSpdLeft), CR ]
+ENDIF
+
+RETURN
+
+
+
+'**************************************************************************
+'**************************************************************************
+'***************Check IR sensors*******************************************
+
+
+Sensors:
+
+FREQOUT 3, 1, 15465                'Center IR sensor
+IRoutFront.BIT2 = IN6
+
+FREQOUT 2, 1, 15485               'Left Center IR sensor
+IRoutFront.BIT3 = IN6
+
+FREQOUT 4, 1, 14897                'Right Center IR sensor
+IRoutFront.BIT1 = IN6
+
+FREQOUT 1, 1, 15550                'Left IR sensor
+IRoutFront.BIT4 = IN6
+
+FREQOUT 5, 1, 15455                'Right IR sensor
+IRoutFront.BIT0 = IN6
+
+RETURN
+
+
+
+
+
+'**************************************************************************
+'**************************************************************************
+'***************Branching**************************************************
+
+
+Branching:
+
+IF IRoutFront = 31 THEN C = C + 1 ELSE C = 0
+
+IF C > 20 THEN
+RightSearch = ~RightSearch
+RUN 2
+ENDIF
+
+'Test**********************************************************************
+'Test**********************************************************************
+OtherHit = 0: LtHit = 0: RtHit = 0: NoHit = 0'                          **
+'IRout = 0              'Use for testing motor constants                 **
+                        '0  for Straight                                 **
+                        '12 for Hard Right                               **
+                        '5  for Hard Left                                **
+                        '8  for Std Right                                **
+                        '2  for Std Left                                 **
+                        '9  for Easy Right                               **
+                        '18  for Easy Left                               **
+                        '26 for Search Right                             **
+                        '11 for Search Left                              **
+                        '10 for Search                                   **
+'Test**********************************************************************
+'Test**********************************************************************
+
+GOTO BranchAgain
+
+
+BRANCH IRoutFront, [Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, Other, Other, Other, LeftHit, Other, Other, Other, Other, RightHit, RightHit, RightHit, NotaHit]
+'0 = hit       00000  00001  00010  00011  00100  00101  00110  00111    01000  01001  01010  01011  01100  01101  01110  01111    10000  10001  10010  10011  10100  10101  10110  10111    11000  11001  11010  11011  11100     11101     11110     11111
+
+Other:
+OtherHit = OtherHit + 1
+IF OtherHIT < 4 THEN BranchAgain
+OtherHit = 0: LtHit = 0: RtHit = 0: NoHit = 0
+GOTO BranchAgain
+
+LeftHit:
+LtHit = LtHit + 1
+IF LtHIT < 2 THEN BranchAgain
+OtherHit = 0: RtHit = 0: NoHit = 0
+IF LtHIT < 200 THEN BranchAgain    '45 is about six to seven seconds
+FOR Delay = 1 TO 5
+NewSpdLeft = 0                     'Drive backwards for about eight
+NewSpdRt = 95                      'inches as the controller changes speeds
+LtHit = 25                         'If no change, do again in two seconds
+GOSUB Drive
+NEXT
+RETURN                             'Return to main program
+
+RightHit:
+RtHit = RtHit + 1
+IF RtHIT < 2 THEN BranchAgain
+OtherHit = 0: LtHit = 0: NoHit = 0
+IF RtHIT < 200 THEN BranchAgain    '45 is about six to seven seconds
+FOR Delay = 1 TO 5
+NewSpdLeft = 95                    'Drive backwards for about eight
+NewSpdRt = 0                       'inches as the controller changes speed
+RtHit = 25
+GOSUB Drive
+NEXT
+RETURN                             'Return to main program
+
+
+NotaHit:
+NoHit = NoHit + 1
+IF NoHIT < 2 THEN BranchAgain
+OtherHit = 0: LtHit = 0: RtHit = 0
+IF NoHiT < 300 THEN BranchAgain    '100 is about eleven seconds
+NoHit = 0                          'Zero out counter
+FOR Delay = 1 TO 5
+NewSpdLeft = 0                     'Drive backwards for about
+NewSpdRt = 0                       'a foot as the controller
+GOSUB Drive                        'changes speeds
+NEXT                               'Pause 1 sec for a total of 3 1/2 feet backwards
+RETURN                             'Return to main program
+
+BranchAgain:
+BRANCH IRoutFront, [Straight,EasyLeft,Left, Left, Straight,HardLeft,HardLeft,HardLeft,Right,EasyRight,Search,SearchLeft,HardRight,Search,Search,SearchLeft,EasyRight,Straight,EasyLeft,EasyLeft,HardRight,Search,Search,Left, Right,EasyRight,SearchRight,StraightR,HardRight,Right,SearchRight,Search]
+'0 = hit       00000    00001    00010 00011 00100    00101    00110    00111    01000 01001     01010  01011      01100     01101  01110  01111      10000     10001    10010    10011    10100     10101  10110  10111 11000 11001     11010       11011     11100     11101 11110       11111
+
+StraightR:        '****************Straight, change search direction
+Rightsearch = Rightsearch ^ 1
+GOTO Straight
+
+
+SearchRight:      '****************Search to right
+Rightsearch = 1
+GOTO Search
+
+
+SearchLeft:       '****************Search to left
+Rightsearch = 0
+GOTO Search
+
+
+Search:           '****************Search to right if Rightsearch = 1, Search to left if rightsearch = 0
+NewSpdLeft  = 0+(Rightsearch*95)
+NewSpdRt = 95-(Rightsearch*95)
+RETURN
+
+
+Straight:         '****************Straight****************
+NewSpdLeft = 255
+NewSpdRt = 255
+RETURN
+
+
+HardRight:        '****************Hard right****************
+Rightsearch = 1
+NewSpdLeft  = 255
+NewSpdRt = 100
+RETURN
+
+
+HardLeft:         '****************Hard left****************
+Rightsearch = 0
+NewSpdLeft  = 100
+NewSpdRt = 255
+RETURN
+
+
+Right:            '****************Right****************
+Rightsearch = 1
+NewSpdLeft  = 255
+NewSpdRt = 127
+RETURN
+
+
+Left:             '****************Left****************
+Rightsearch = 0
+NewSpdLeft  = 127
+NewSpdRt = 255
+RETURN
+
+
+EasyRight:        '****************Easy right****************
+Rightsearch = 1
+NewSpdLeft  = 255
+NewSpdRt = 160
+RETURN
+
+
+EasyLeft:         '****************Easy left****************
+Rightsearch = 0
+NewSpdLeft  = 160
+NewSpdRt = 255
+RETURN
+
+
+
+'**********************************************************
+'********Kill**********************************************
+'**********************************************************
+
+Kill:
+       IF IND = 0 AND IN11=1 THEN
+       RETURN
+       ELSE
+       PAUSE 20
+       IF IND = 0 AND IN11=1 THEN
+       RETURN
+       ELSE
+Redlight:
+       SEROUT 16, 24816, [ "!", "B", HEX2 0, CR ]
+       SEROUT 16, 24816, [ "!", "a", HEX2 0, CR ]
+        SEROUT 0,2,[27,115]
+        SEROUT 0,2,[27,76,5,0,"DEAD DEAD"]
+        SEROUT 0,2,[27,76,7,1,BIN5 IRoutFront]
+       PAUSE 100
+       GOTO redlight
+       ENDIF
+       ENDIF
+
+RETURN
