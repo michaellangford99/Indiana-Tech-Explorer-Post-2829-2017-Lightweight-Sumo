@@ -33,7 +33,7 @@ INPUT 0
 INPUT 1
 INPUT 2
 INPUT 3
-'HIGH 14                            ' drive high Kill switch button
+'HIGH 14                            ' uncomment drive high Kill switch button
 
 IRout = 0
 Pattern = 1
@@ -243,7 +243,7 @@ DO                                           ' Main DO...LOOP
   GOSUB Get_Ir_Remote_Code                   ' Call remote code subroutine
   SELECT remoteCode                          ' Select message to display
     CASE 0 TO 9
-      RUN 1                                  ' Begin the Start Routine
+      RUN 1                                  ' Begin the Start Routine (Start_Routines.bsp)
     ENDSELECT
 
 LOOP                                         ' Repeat main DO...LOOP
