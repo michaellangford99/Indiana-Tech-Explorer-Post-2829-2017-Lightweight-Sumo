@@ -33,7 +33,7 @@ INPUT 0
 INPUT 1
 INPUT 2
 INPUT 3
-HIGH 14                            ' drive high Kill switch button
+'HIGH 14                            ' drive high Kill switch button
 
 IRout = 0
 Pattern = 1
@@ -202,7 +202,7 @@ Kill:
        IF (IN2 = 1) THEN GOTO Redlight
        IF (IN3 = 1) THEN GOTO Redlight
 
-       
+
        IF IN14 = 0 THEN
         PAUSE 20
         IF IN14 = 0 THEN
