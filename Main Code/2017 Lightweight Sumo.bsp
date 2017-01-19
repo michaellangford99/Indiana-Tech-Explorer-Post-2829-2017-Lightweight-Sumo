@@ -1,4 +1,4 @@
-' {$STAMP BS2p, Start_Routines.bsp, Search.bsp, Kill.bsp}
+' {$STAMP BS2p, Start_Routines.bsp, Search.bsp}
 ' {$PBASIC 2.5}
 
 MotR        CON        8           'Serial out pin for right motor
@@ -42,7 +42,7 @@ INPUT 0
 INPUT 1
 INPUT 2
 INPUT 3
-'HIGH 14                            ' uncomment drive high Kill switch button
+'HIGH 14                            ' uncomment to drive high Kill switch button
 
 'initialize variables
 IRoutFront = 0
@@ -80,8 +80,7 @@ GOTO Main
 
 '**************************************************************************
 '**************************************************************************
-'***************Check IR sensors*******************************************
-
+'*************Check Sensors************************************************
 
 Sensors:
 MAINIO
@@ -114,7 +113,12 @@ IROutBack.BIT1 = IN15
 FREQOUT 14, 2, 10725   'Left Back IR sensor
 IROutBack.BIT0 = IN15
 
+'Uncomment for debugging purposes, will blind the sensors
+'IRoutFront = 31
+'IRoutBack = 31
+
 RETURN
+
 
 '**************************************************************************
 '**************************************************************************
@@ -122,7 +126,7 @@ RETURN
 
 
 Pushbutton:
-'============== Increase + Decrease Buttons ====================
+'=========== Start Left + Start Right Toggle Buttons ===========
 AUXIO
 IF IN6=0 THEN
   SearchBit=0         'Set searchbit to left
@@ -138,8 +142,8 @@ IF IN5=0 THEN
   GOTO IRStart        'Wait to be started by Remote
 ENDIF
 
-'=========== Start Left + Start Right Toggle Buttons ===========
 
+'============== Increase + Decrease Buttons ====================
 AUXIO
 IF IN7=0 THEN
   DO UNTIL IN7=1      'Wait until button is released
@@ -170,58 +174,68 @@ Display:
       IF Pattern=1 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"SSSBackAForward"]
-        SEROUT 15,2,[27,76,7,1,BIN5 IROut]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=2 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"  SSOTurnKill   "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IROut]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=3 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"SSOForwardSearch"]
-        SEROUT 15,2,[27,76,7,1,BIN5 IROut]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=4 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"    FFCharge    "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=5 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0," BBOutLoopBack  "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=6 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"   FFTurnSide   "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=7 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0," FFBack45Charge "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=8 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"  BB180Charge   "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=9 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0," BB270Loopkill  "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
       IF Pattern=10 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"  SSSTurnKill   "]
-        SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
       ENDIF
 RETURN
 
-'**************************************************************************
-'**************************************************************************
-'***************Check Kill Switch******************************************
+'**************************************************************
+'*****************************Kill*****************************
+'**************************************************************
 
 Kill:
        AUXIO
@@ -231,9 +245,9 @@ Kill:
        IF (IN3 = 1) THEN GOTO Redlight
 
 
-       IF IN14 = 0 THEN
+       IF (IN14 = 0) THEN
         PAUSE 20
-        IF IN14 = 0 THEN
+        IF (IN14 = 0) THEN
           GOTO Redlight
         ENDIF
        ENDIF
@@ -248,11 +262,11 @@ Redlight:
           AUXIO
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,5,0,"DEAD DEAD"]
-          SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+          SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+          SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
           LOW 14
           PAUSE 100
           GOTO redlight
-
 
 
 '**************************************************************************
@@ -263,7 +277,8 @@ IRStart:
 AUXIO
 SEROUT 15,2,[27,115]
 SEROUT 15,2,[27,76,4,0,"  IR Start  "]
-SEROUT 15,2,[27,76,7,1,BIN5 IROut]
+SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
 
 
 DO                                           ' Main DO...LOOP
@@ -276,7 +291,7 @@ DO                                           ' Main DO...LOOP
 
 LOOP                                         ' Repeat main DO...LOOP
 
-
+'Should this be modified to use both front and back sensors?
 Get_Ir_Remote_Code:
   MAINIO
   remoteCode = 0
