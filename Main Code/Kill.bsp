@@ -8,12 +8,14 @@ DriveDelay  CON        6           'Delay to scale start routine times
 
 ' --------------Variables------------------------
 '
-Pattern      VAR       Byte        'The Start pattern to be run
-SearchBit    VAR       Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
-IRout        VAR       Byte        'Sensor output to Branch
-NewSpdRt     VAR       Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-NewSpdLeft   VAR       Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-Delay        VAR       Byte        'Counter
+Pattern     VAR        Byte        'The Start pattern to be run
+SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
+SideBit     VAR        Bit         'Side that opponent was last seen on (0 if front, 1 if back
+IRoutFront  VAR        Byte        'Front Sensor output to Branch
+IRoutBack   VAR        Byte        'Back Sensor output to Branch
+NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Delay       VAR        Byte        'Counter
 C            VAR       Byte        'Counter
 RtHit        VAR       Word
 LtHit        VAR       Word
@@ -40,7 +42,8 @@ NewSpdRt = 127
 NewSpdLeft = 127
 Pattern = 0
 Delay = 0
-IRout = 0
+IRoutFront = 0
+IRoutBack = 0
 C = 0
 RtHit = 0
 LtHit = 0
@@ -80,35 +83,44 @@ RETURN
 
 '**************************************************************************
 '**************************************************************************
-'***************Check IR sensors*******************************************
-
+'*************Check Sensors************************************************
 
 Sensors:
 MAINIO
-IROut = 0
 
-FREQOUT 1, 2, 10407   'Right IR sensor
-IROUT.BIT4 = IN6
+'Front Plow Sensors
+IROutFront = 0
 
-FREQOUT 2, 2, 10303   'Right Center IR sensor
-IROUT.BIT3 = IN6
+FREQOUT 1, 2, 10407   'Right Front IR sensor
+IROutFront.BIT4 = IN6
+FREQOUT 2, 2, 10303   'Right Center Front IR sensor
+IROutFront.BIT3 = IN6
+FREQOUT 3, 2, 10812   'Center Front IR sensor
+IROutFront.BIT2 = IN6
+FREQOUT 4, 2, 17610   'Left Center Front IR sensor
+IROutFront.BIT1 = IN6
+FREQOUT 5, 2, 10725   'Left Front IR sensor
+IROutFront.BIT0 = IN6
 
-FREQOUT 3, 2, 10812   'Center IR sensor
-IROUT.BIT2 = IN6
+'Back Plow Sensors
+IROutBack = 0
 
-FREQOUT 4, 2, 17610   'Left Center IR sensor
-IROUT.BIT1 = IN6
-
-FREQOUT 5, 2, 10725   'Left IR sensor
-IROUT.BIT0 = IN6
+FREQOUT 10, 2, 10407   'Right Back IR sensor
+IROutBack.BIT4 = IN15
+FREQOUT 11, 2, 10303   'Right Center Back IR sensor
+IROutBack.BIT3 = IN15
+FREQOUT 12, 2, 10812   'Center Back IR sensor
+IROutBack.BIT2 = IN15
+FREQOUT 13, 2, 17610   'Left Center Back IR sensor
+IROutBack.BIT1 = IN15
+FREQOUT 14, 2, 10725   'Left Back IR sensor
+IROutBack.BIT0 = IN15
 
 'Uncomment for debugging purposes
-'IRout = 31
+'IRoutFront = 31
+'IRoutBack = 31
 
 RETURN
-
-
-
 
 
 '**************************************************************************
@@ -279,6 +291,7 @@ Kill:
        IF (IN2 = 1) THEN GOTO Redlight
        IF (IN3 = 1) THEN GOTO Redlight
 
+
        IF (IN14 = 0) THEN
         PAUSE 20
         IF (IN14 = 0) THEN
@@ -296,7 +309,8 @@ Redlight:
           AUXIO
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,5,0,"DEAD DEAD"]
-          SEROUT 15,2,[27,76,7,1,BIN5 IRout]
+          SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+          SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
           LOW 14
           PAUSE 100
           GOTO redlight
