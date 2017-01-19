@@ -17,6 +17,15 @@ NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is 
 NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
 Delay       VAR        Byte        'Counter
 
+HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
+HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
+
+W_Center    CON        3           'Weights for hits
+W_Cntr_R    CON        2
+W_Cntr_L    CON        2
+W_Far_R     CON        1
+W_Far_L     CON        1
+
 
 ' --------------Initializations------------------
 '
@@ -138,13 +147,28 @@ RETURN
 '***************Branching**************************************************
 
 Branching:
+'detect which side has more hits
+HitCount_F = 0
+HitCount_R = 0
 
-IF IROutFront < IROutBack THEN
+IF IRoutFront.BIT0 = 0 THEN HitCount_F = HitCount_F + W_Far_L
+IF IRoutFront.BIT1 = 0 THEN HitCount_F = HitCount_F + W_Cntr_L
+IF IRoutFront.BIT2 = 0 THEN HitCount_F = HitCount_F + W_Center
+IF IRoutFront.BIT3 = 0 THEN HitCount_F = HitCount_F + W_Cntr_R
+IF IRoutFront.BIT4 = 0 THEN HitCount_F = HitCount_F + W_Far_R
+
+IF IRoutBack.BIT0 = 0 THEN HitCount_R = HitCount_R + W_Far_L
+IF IRoutBack.BIT1 = 0 THEN HitCount_R = HitCount_R + W_Cntr_L
+IF IRoutBack.BIT2 = 0 THEN HitCount_R = HitCount_R + W_Center
+IF IRoutBack.BIT3 = 0 THEN HitCount_R = HitCount_R + W_Cntr_R
+IF IRoutBack.BIT4 = 0 THEN HitCount_R = HitCount_R + W_Far_R
+
+IF HitCount_F > HitCount_R THEN
  IF (SideBit=1) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
  SideBit=0
 ENDIF
 
-IF IROutFront > IROutBack THEN
+IF HitCount_F < HitCount_R THEN
  IF (SideBit=0) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
  SideBit=1
 ENDIF
