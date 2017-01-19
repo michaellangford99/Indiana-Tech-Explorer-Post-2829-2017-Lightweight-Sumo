@@ -284,7 +284,7 @@ Redlight:
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,5,0,"DEAD DEAD"]
           SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
-          SEROUT 15,2,[27,76,7,2,BIN5 IROutFront]
+          SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
           LOW 14
           PAUSE 100
           GOTO redlight
