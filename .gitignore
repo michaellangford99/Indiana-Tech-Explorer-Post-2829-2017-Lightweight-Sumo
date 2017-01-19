@@ -1,3 +1,6 @@
+#PBASIC files
+*.bak
+
 # Compiled source #
 ###################
 *.com
