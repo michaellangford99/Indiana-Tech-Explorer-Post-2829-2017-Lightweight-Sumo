@@ -71,7 +71,7 @@ Drive:
 PAUSE DriveDelay
 
 'If we are in Back Sensor mode, flip the motor values:
-IF (SideBit=1) then
+IF (SideBit=1) THEN
 
  NewSpdRt = NewSpdRt - 127
  NewSpdRt = -NewSpdRt
@@ -81,7 +81,7 @@ IF (SideBit=1) then
  NewSpdLeft = -NewSpdLeft
  NewSpdLeft = NewSpdLeft + 128
 
-Endif
+ENDIF
 
 
 MAINIO
@@ -139,12 +139,12 @@ RETURN
 
 Branching:
 
-IF IROutFront > IROutBack THEN
+IF IROutFront < IROutBack THEN
  IF (SideBit=1) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
  SideBit=0
 ENDIF
 
-IF IROutFront < IROutBack THEN
+IF IROutFront > IROutBack THEN
  IF (SideBit=0) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
  SideBit=1
 ENDIF

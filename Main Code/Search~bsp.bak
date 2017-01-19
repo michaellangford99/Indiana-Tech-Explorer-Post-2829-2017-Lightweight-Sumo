@@ -70,6 +70,7 @@ GOTO Main
 Drive:
 PAUSE DriveDelay
 
+'If we are in Back Sensor mode, flip the motor values:
 IF (SideBit=1) then
 
  NewSpdRt = NewSpdRt - 127
