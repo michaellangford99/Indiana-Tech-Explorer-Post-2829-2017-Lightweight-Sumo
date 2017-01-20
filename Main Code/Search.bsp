@@ -20,12 +20,7 @@ Delay       VAR        Byte        'Counter
 HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
 HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
 
-W_Center    CON        3           'Weights for hits
-W_Cntr_R    CON        2
-W_Cntr_L    CON        2
-W_Far_R     CON        1
-W_Far_L     CON        1
-
+HitMax      CON        4           'Number of hits recived on opposite side before direction will be changed
 
 ' --------------Initializations------------------
 '
@@ -148,29 +143,47 @@ RETURN
 
 Branching:
 'detect which side has more hits
-HitCount_F = 0
-HitCount_R = 0
 
-IF IRoutFront.BIT0 = 0 THEN HitCount_F = HitCount_F + W_Far_L
-IF IRoutFront.BIT1 = 0 THEN HitCount_F = HitCount_F + W_Cntr_L
-IF IRoutFront.BIT2 = 0 THEN HitCount_F = HitCount_F + W_Center
-IF IRoutFront.BIT3 = 0 THEN HitCount_F = HitCount_F + W_Cntr_R
-IF IRoutFront.BIT4 = 0 THEN HitCount_F = HitCount_F + W_Far_R
-
-IF IRoutBack.BIT0 = 0 THEN HitCount_R = HitCount_R + W_Far_L
-IF IRoutBack.BIT1 = 0 THEN HitCount_R = HitCount_R + W_Cntr_L
-IF IRoutBack.BIT2 = 0 THEN HitCount_R = HitCount_R + W_Center
-IF IRoutBack.BIT3 = 0 THEN HitCount_R = HitCount_R + W_Cntr_R
-IF IRoutBack.BIT4 = 0 THEN HitCount_R = HitCount_R + W_Far_R
-
-IF HitCount_F > HitCount_R THEN
- IF (SideBit=1) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
- SideBit=0
+'if Side = Front
+IF (SideBit = 0) THEN
+ 'if there are hits on the opposite plow alone, increase hit counter
+ IF (IRoutFront = 31) AND (IRoutBack < 31) THEN
+   HitCount_F = 0
+   HitCount_B = HitCount_B + 1
+ ELSE
+   'Otherwise, zero the counters
+   HitCount_F = 0
+   HitCount_B = 0
+ ENDIF
 ENDIF
 
-IF HitCount_F < HitCount_R THEN
- IF (SideBit=0) THEN SearchBit = SearchBit ^ 1 'make sure to change search direction if side has changed
+'if Side = Back
+IF (SideBit = 1) THEN
+ 'if there are hits on the opposite plow alone, increase hit counter
+ IF (IRoutBack = 31) AND (IRoutFront < 31) THEN
+   HitCount_B = 0
+   HitCount_F = HitCount_F + 1
+ ELSE
+   'Otherwise, zero the counters
+   HitCount_B = 0
+   HitCount_F = 0
+ ENDIF
+ENDIF
+
+'if Hitcount exceeds maximum, change directions
+IF HitCount_F > HitMax THEN
+ SearchBit = SearchBit ^ 1 'make sure to change search direction
+ SideBit=0
+ HitCount_B = 0
+ HitCount_F = 0
+ENDIF
+
+'if Hitcount exceeds maximum, change directions
+IF HitCount_F < HitMax THEN
+ SearchBit = SearchBit ^ 1 'make sure to change search direction
  SideBit=1
+ HitCount_B = 0
+ HitCount_F = 0
 ENDIF
 
 
