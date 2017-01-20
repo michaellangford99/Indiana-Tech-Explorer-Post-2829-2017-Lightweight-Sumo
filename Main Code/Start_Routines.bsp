@@ -58,6 +58,7 @@ SideBit = 0
 
 GET 0, Pattern                    'Retrieve the existing start routine from Scratch RAM
 GET 10, SearchBit                 'Retrieve the existing search bit from Scratch RAM
+GET 20, SideBit                   'Retrieve the existing direction bit from Scratch RAM
 IF Pattern = 0 THEN RUN 2         'If there is nothing in Scratch Ram, then go into Search + Kill
 
 BRANCH Pattern, [BackAttack, BackAttack, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head, Side45, Back180, BackLoop,SideLoop]

@@ -132,6 +132,7 @@ IF IN6=0 THEN
   SearchBit=0         'Set searchbit to left
   PUT 0, Pattern      'store Pattern in scratch RAM at address #0
   PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
+  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
   GOTO IRStart        'Wait to be started by Remote
 ENDIF
 AUXIO
@@ -139,6 +140,7 @@ IF IN5=0 THEN
   SearchBit=1         'Set searchbit to right
   PUT 0, Pattern      'store Pattern in scratch RAM at address #0
   PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
+  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
   GOTO IRStart        'Wait to be started by Remote
 ENDIF
 
