@@ -58,8 +58,10 @@ ThresholdPulse CON 500  * 5 / 2    ' Binary 1 vs. 0 for PULSIN
 
 'Check for reset
 AUXIO
-IF (IN5=0)  THEN  RUN 2
-IF (IN6=0)  THEN  RUN 2
+IF (IN5=0) OR (IN6=0) THEN
+ GET 0, SideBit
+ RUN 2
+ENDIF
 
 '**************************************************************************
 '**************************************************************************
@@ -230,6 +232,12 @@ Display:
       IF Pattern=10 THEN
         SEROUT 15,2,[27,115]
         SEROUT 15,2,[27,76,2,0,"  SSSTurnKill   "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=11 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"    BBCharge    "]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
