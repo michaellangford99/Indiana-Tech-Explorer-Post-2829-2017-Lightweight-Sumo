@@ -61,7 +61,7 @@ GET 10, SearchBit                 'Retrieve the existing search bit from Scratch
 GET 20, SideBit                   'Retrieve the existing direction bit from Scratch RAM
 IF Pattern = 0 THEN RUN 2         'If there is nothing in Scratch Ram, then go into Search + Kill
 
-BRANCH Pattern, [BackAttack, BackAttack, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head, Side45, Back180, BackLoop,SideLoop]
+BRANCH Pattern, [BackAttack, BackAttack, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head, Side45, Back180, BackLoop,SideLoop,BackCharge]
 
 'Situations 1, 2: Side-by-side, facing same direction, 1ft apart / touching
 BackAttack:
@@ -225,6 +225,18 @@ SideLoop:
   NEXT
 
   RUN 2                            'Search Mode
+
+
+'Situation 14: Back-to-Back, 1ft apart / touching
+BackCharge:
+  SideBit = 1
+  FOR Delay = 1 TO 20
+    NewSpdRt = 0
+    NewSpdLeft = 0
+    GOSUB Drive
+    GOSUB Sensors
+  NEXT
+  RUN 2
 
 
 '**************************************************************************
