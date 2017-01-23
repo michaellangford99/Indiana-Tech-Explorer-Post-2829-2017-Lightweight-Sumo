@@ -72,7 +72,20 @@ GOTO Main
 '*********Motor Control****************************************************
 
 Drive:
-PAUSE DriveDelay
+'uncomment if Display routine is removed
+'PAUSE DriveDelay
+
+'Displays debug information on Serial LCD
+AUXIO
+SEROUT 15,2,[27,115]
+SEROUT 15,2,[27,76,0,0,"Rt:   ",DEC NewSpdRt,   "   "]
+SEROUT 15,2,[27,76,0,1,"Left: ",DEC NewSpdLeft, "   "]
+
+SEROUT 15,2,[27,76,10,0,"Side:   ", BIN1 SideBit]
+SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
+
+SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROutFront]
+SEROUT 15,2,[27,76,0,3,"IRBack:  ",BIN5 IROutBack]
 
 MAINIO
 SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
