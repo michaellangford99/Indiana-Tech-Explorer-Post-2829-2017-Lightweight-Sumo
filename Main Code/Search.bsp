@@ -74,20 +74,6 @@ GOTO Main
 Drive:
 PAUSE DriveDelay
 
-'If we are in Back Sensor mode, flip the motor values:
-IF (SideBit=1) THEN
-
- NewSpdRt = NewSpdRt - 127
- NewSpdRt = -NewSpdRt
- NewSpdRt = NewSpdRt + 128
-
- NewSpdLeft = NewSpdLeft - 127
- NewSpdLeft = -NewSpdLeft
- NewSpdLeft = NewSpdLeft + 128
-
-ENDIF
-
-
 MAINIO
 SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
 SEROUT MotL, Bmode, ["!G ",SDEC ((127-NewSpdLeft)<<3),CR]
@@ -176,6 +162,10 @@ IF HitCount_F > HitMax THEN
  SideBit=0
  HitCount_B = 0
  HitCount_F = 0
+
+ 'Write new direction bit to EEPROM, at address #0
+ WRITE 0, SideBit
+
 ENDIF
 
 'if Hitcount exceeds maximum, change directions
@@ -184,6 +174,9 @@ IF HitCount_F < HitMax THEN
  SideBit=1
  HitCount_B = 0
  HitCount_F = 0
+
+ 'Write new direction bit to EEPROM, at address #0
+ WRITE 0, SideBit
 ENDIF
 
 
@@ -196,98 +189,183 @@ RETURN
 
 '************Front Branching Routine***************************************
 BranchingFront:
-BRANCH IRoutFront, [Straight,EasyLeft,Left, Left, Straight,HardLeft,HardLeft,HardLeft,Right,EasyRight,Search,SearchLeft,HardRight,Search,Search,SlowLeft,EasyRight,Straight,EasyLeft,EasyLeft,HardRight,Search,Search,Left, Right,EasyRight,SearchRight,StraightR,HardRight,Right,SlowRight,Search]
-'0 = hit            00000    00001    00010 00011 00100    00101    00110    00111    01000 01001     01010  01011      01100     01101  01110  01111      10000     10001    10010    10011    10100     10101  10110  10111 11000 11001     11010       11011     11100     11101 11110       11111
+BRANCH IRoutFront, [F_Straight,F_EasyLeft,F_Left, F_Left, F_Straight,F_HardLeft,F_HardLeft,F_HardLeft,F_Right,F_EasyRight,F_Search,F_SearchLeft,F_HardRight,F_Search,F_Search,F_SlowLeft,F_EasyRight,F_Straight,F_EasyLeft,F_EasyLeft,F_HardRight,F_Search,F_Search,F_Left, F_Right,F_EasyRight,F_SearchRight,F_StraightR,F_HardRight,F_Right,F_SlowRight,F_Search]
+'0 = hit            00000      00001      00010   00011   00100      00101       00110     00111      01000   01001       01010    01011        01100       01101    01110    01111      10000       10001      10010      10011      10100       10101    10110    10111   11000   11001       11010         11011       11100       11101   11110       11111
 
 '************Back Branching Routine****************************************
 BranchingBack:
-BRANCH IRoutBack, [Straight,EasyLeft,Left, Left, Straight,HardLeft,HardLeft,HardLeft,Right,EasyRight,Search,SearchLeft,HardRight,Search,Search,SlowLeft,EasyRight,Straight,EasyLeft,EasyLeft,HardRight,Search,Search,Left, Right,EasyRight,SearchRight,StraightR,HardRight,Right,SlowRight,Search]
-'0 = hit            00000    00001    00010 00011 00100    00101    00110    00111    01000 01001     01010  01011      01100     01101  01110  01111      10000     10001    10010    10011    10100     10101  10110  10111 11000 11001     11010       11011     11100     11101 11110       11111
+BRANCH IRoutBack, [B_Straight,B_EasyLeft,B_Left, B_Left, B_Straight,B_HardLeft,B_HardLeft,B_HardLeft,B_Right,B_EasyRight,B_Search,B_SearchLeft,B_HardRight,B_Search,B_Search,B_SlowLeft,B_EasyRight,B_Straight,B_EasyLeft,B_EasyLeft,B_HardRight,B_Search,B_Search,B_Left, B_Right,B_EasyRight,B_SearchRight,B_StraightR,B_HardRight,B_Right,B_SlowRight,B_Search]
+'0 = hit           00000      00001      00010   00011   00100      00101      00110      00111      01000   01001       01010    01011        01100       01101    01110    01111      10000       10001      10010      10011      10100       10101    10110    10111   11000   11001       11010         11011       11100       11101   11110       11111
 
 
 
 '************Motor Routines************************************************
-StraightR:        '****************Straight, change search direction
+F_StraightR:        '****************Straight, change search direction
 SearchBit = SearchBit ^ 1
-GOTO Straight
+GOTO F_Straight
 
 
-SearchRight:      '****************Search to right
+F_SearchRight:      '****************Search to right
 SearchBit = 1
-GOTO Search
+GOTO F_Search
 
 
-SearchLeft:       '****************Search to left
+F_SearchLeft:       '****************Search to left
 SearchBit = 0
-GOTO Search
+GOTO F_Search
 
 
-Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
+F_Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
 NewSpdLeft  = 150+(SearchBit*50)
 NewSpdRt = 200-(SearchBit*50)
 RETURN
 
 
-Straight:         '****************Straight****************
+F_Straight:         '****************Straight****************
 NewSpdLeft = 255
 NewSpdRt = 255
 RETURN
 
 
-HardRight:        '****************Hard right****************
+F_HardRight:        '****************Hard right****************
 SearchBit = 1
 NewSpdLeft  = 255
 NewSpdRt = 135
 RETURN
 
 
-HardLeft:         '****************Hard left****************
+F_HardLeft:         '****************Hard left****************
 SearchBit = 0
 NewSpdLeft  = 135
 NewSpdRt = 255
 RETURN
 
 
-Right:            '****************Right****************
+F_Right:            '****************Right****************
 SearchBit = 1
 NewSpdLeft  = 255
 NewSpdRt = 160
 RETURN
 
 
-Left:             '****************Left****************
+F_Left:             '****************Left****************
 SearchBit = 0
 NewSpdLeft  = 160
 NewSpdRt = 255
 RETURN
 
 
-EasyRight:        '****************Easy right****************
+F_EasyRight:        '****************Easy right****************
 SearchBit = 1
 NewSpdLeft  = 255
 NewSpdRt = 185
 RETURN
 
 
-EasyLeft:         '****************Easy left****************
+F_EasyLeft:         '****************Easy left****************
 SearchBit = 0
 NewSpdLeft  = 185
 NewSpdRt = 255
 RETURN
 
 
-SlowRight:        '****************Slow right****************
+F_SlowRight:        '****************Slow right****************
 SearchBit = 1
 NewSpdLeft  = 255
 NewSpdRt = 100
 RETURN
 
 
-SlowLeft:         '****************Slow left****************
+F_SlowLeft:         '****************Slow left****************
 SearchBit = 0
 NewSpdLeft  = 100
 NewSpdRt = 255
 RETURN
+
+'***************************Backward Motor Routines************
+
+B_StraightR:        '****************Straight, change search direction
+SearchBit = SearchBit ^ 1
+GOTO B_Straight
+
+
+B_SearchRight:      '****************Search to right
+SearchBit = 1
+GOTO B_Search
+
+
+B_SearchLeft:       '****************Search to left
+SearchBit = 0
+GOTO B_Search
+
+
+B_Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
+NewSpdLeft  = 55+(SearchBit*50)
+NewSpdRt = 105-(SearchBit*50)
+RETURN
+
+
+B_Straight:         '****************Straight****************
+NewSpdLeft = 0
+NewSpdRt = 0
+RETURN
+
+
+B_HardRight:        '****************Hard right****************
+SearchBit = 1
+NewSpdLeft  = 120
+NewSpdRt = 0
+RETURN
+
+
+B_HardLeft:         '****************Hard left****************
+SearchBit = 0
+NewSpdLeft  = 0
+NewSpdRt = 120
+RETURN
+
+
+B_Right:            '****************Right****************
+SearchBit = 1
+NewSpdLeft  = 255
+NewSpdRt = 160
+RETURN
+
+
+B_Left:             '****************Left****************
+SearchBit = 0
+NewSpdLeft  = 0
+NewSpdRt = 95
+RETURN
+
+
+B_EasyRight:        '****************Easy right****************
+SearchBit = 1
+NewSpdLeft  = 70
+NewSpdRt = 0
+RETURN
+
+
+B_EasyLeft:         '****************Easy left****************
+SearchBit = 0
+NewSpdLeft  = 0
+NewSpdRt = 70
+RETURN
+
+
+B_SlowRight:        '****************Slow right****************
+SearchBit = 1
+NewSpdLeft  = 155
+NewSpdRt = 0
+RETURN
+
+
+B_SlowLeft:         '****************Slow left****************
+SearchBit = 0
+NewSpdLeft  = 0
+NewSpdRt = 155
+RETURN
+
 
 
 
