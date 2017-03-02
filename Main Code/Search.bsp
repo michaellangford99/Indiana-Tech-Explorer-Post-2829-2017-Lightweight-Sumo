@@ -6,6 +6,8 @@ MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
 
+
+
 ' --------------Variables------------------------
 '
 Pattern     VAR        Byte        'The Start pattern to be run
@@ -20,7 +22,7 @@ Delay       VAR        Byte        'Counter
 HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
 HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
 
-HitMax      CON        4           'Number of hits recived on opposite side before direction will be changed
+HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
 
 ' --------------Initializations------------------
 '
@@ -86,6 +88,9 @@ SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
 
 SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROutFront]
 SEROUT 15,2,[27,76,0,3,"IRBack:  ",BIN5 IROutBack]
+
+SEROUT 15,2,[27,76,16,2,"F ",DEC HitCount_F]
+SEROUT 15,2,[27,76,16,3,"B ",DEC HitCount_B]
 
 MAINIO
 SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
@@ -175,14 +180,13 @@ IF HitCount_F > HitMax THEN
  SideBit=0
  HitCount_B = 0
  HitCount_F = 0
-
  'Write new direction bit to EEPROM, at address #0
  WRITE 0, SideBit
 
 ENDIF
 
 'if Hitcount exceeds maximum, change directions
-IF HitCount_F < HitMax THEN
+IF HitCount_B > HitMax THEN
  SearchBit = SearchBit ^ 1 'make sure to change search direction
  SideBit=1
  HitCount_B = 0
@@ -228,6 +232,7 @@ SearchBit = 0
 GOTO F_Search
 
 
+'FIXME!!! TURNS WAY TO WIDE
 F_Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
 NewSpdLeft  = 150+(SearchBit*50)
 NewSpdRt = 200-(SearchBit*50)
@@ -311,7 +316,7 @@ B_SearchLeft:       '****************Search to left
 SearchBit = 0
 GOTO B_Search
 
-
+'FIXME!!! TURNS WAY TO WIDE
 B_Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
 NewSpdLeft  = 55+(SearchBit*50)
 NewSpdRt = 105-(SearchBit*50)
