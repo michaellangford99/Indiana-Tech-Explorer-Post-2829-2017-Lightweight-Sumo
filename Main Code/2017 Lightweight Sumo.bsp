@@ -51,10 +51,16 @@ Pattern = 1
 SearchBit=0
 SideBit=0
 
-IrDet          PIN     6           ' I/O pin to IR detector output
+IrDet          PIN     15           ' I/O pin to IR detector output
 
 ThresholdStart CON 2400            ' Binary 1 vs. start pulse
 ThresholdPulse CON 500  * 5 / 2    ' Binary 1 vs. 0 for PULSIN
+
+'LEDs
+Blue_LED       CON 12
+Red_LED        CON 11
+Green_LED      CON 10
+
 
 'Check for reset
 AUXIO
@@ -241,6 +247,14 @@ Display:
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
+
+      'LEDs:
+      AUXIO
+      'TOGGLE Green_LED
+      'TOGGLE Red_LED
+      'TOGGLE Blue_LED
+
+
 RETURN
 
 '**************************************************************
