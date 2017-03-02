@@ -285,9 +285,10 @@ Redlight:
 
           AUXIO
           SEROUT 15,2,[27,115]
-          SEROUT 15,2,[27,76,5,0,"DEAD DEAD"]
-          SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
-          SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+          SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
+          SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
+          SEROUT 15,2,[27,76,0,2,"       ", BIN5 IROutBack,  "        "]
+          SEROUT 15,2,[27,76,0,3,"                    "]
           LOW 14
           PAUSE 100
           GOTO redlight
@@ -300,10 +301,10 @@ Redlight:
 IRStart:
 AUXIO
 SEROUT 15,2,[27,115]
-SEROUT 15,2,[27,76,4,0,"  IR Start  "]
-SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
-SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
-
+SEROUT 15,2,[27,76,0,0,"      IR Start      "]
+SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
+SEROUT 15,2,[27,76,0,2,"       ", BIN5 IROutBack,  "        "]
+SEROUT 15,2,[27,76,0,3,"                    "]
 
 DO                                           ' Main DO...LOOP
 
