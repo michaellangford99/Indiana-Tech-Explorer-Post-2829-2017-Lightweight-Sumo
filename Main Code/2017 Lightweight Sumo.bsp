@@ -20,7 +20,6 @@ remoteCode  VAR        Byte        'Stores remote code
 P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
 P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
 Time        VAR        Word        'Button push time accumulator
-
 ' --------------Initializations------------------
 '
 MAINIO
@@ -51,14 +50,15 @@ Pattern = 1
 SearchBit=0
 SideBit=0
 
-IrDet          PIN     15           ' I/O pin to IR detector output
+IrDet_Front    PIN     6           ' I/O pin to IR detector output
+IrDet_Back     PIN     15          ' I/O pin to IR detector output
 
 ThresholdStart CON 2400            ' Binary 1 vs. start pulse
 ThresholdPulse CON 500  * 5 / 2    ' Binary 1 vs. 0 for PULSIN
 
 'LEDs
-Blue_LED       CON 12
-Red_LED        CON 11
+Blue_LED       CON 11
+Red_LED        CON 12
 Green_LED      CON 10
 
 
@@ -76,7 +76,7 @@ ENDIF
 PAUSE 500
 
 Main:
-
+  GOSUB Blue
   GOSUB Kill
   GOSUB Sensors
   GOSUB PushButton
@@ -248,13 +248,6 @@ Display:
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
 
-      'LEDs:
-      AUXIO
-      'TOGGLE Green_LED
-      'TOGGLE Red_LED
-      'TOGGLE Blue_LED
-
-
 RETURN
 
 '**************************************************************
@@ -279,11 +272,14 @@ Kill:
        RETURN
 
 Redlight:
+          GOSUB Green
+
           MAINIO
           SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
           SEROUT MotL, Bmode, ["!G ",SDEC ((0)<<3),CR]
 
           AUXIO
+
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
           SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
@@ -307,37 +303,113 @@ SEROUT 15,2,[27,76,0,2,"       ", BIN5 IROutBack,  "        "]
 SEROUT 15,2,[27,76,0,3,"                    "]
 
 DO                                           ' Main DO...LOOP
+  'check both front and back sensors for the IR start signal....
+  GOSUB Red
 
-  GOSUB Get_Ir_Remote_Code                   ' Call remote code subroutine
+  GOSUB Get_Ir_Remote_Code_Front             ' Call remote code subroutine
   SELECT remoteCode                          ' Select message to display
     CASE 0 TO 9
+      GOSUB LEDs_Off
+      RUN 1                                  ' Begin the Start Routine (Start_Routines.bsp)
+    ENDSELECT
+
+  GOSUB Get_Ir_Remote_Code_Back              ' Call remote code subroutine
+  SELECT remoteCode                          ' Select message to display
+    CASE 0 TO 9
+      GOSUB LEDs_Off
       RUN 1                                  ' Begin the Start Routine (Start_Routines.bsp)
     ENDSELECT
 
 LOOP                                         ' Repeat main DO...LOOP
 
 'Should this be modified to use both front and back sensors?
-Get_Ir_Remote_Code:
+Get_Ir_Remote_Code_Front:
   MAINIO
   remoteCode = 0
-      DO                                     ' Wait for start pulse.
-        PULSIN IrDet, 0, irPulse
-      LOOP UNTIL irPulse > ThresholdStart
-      PULSIN IrDet, 0, irPulse               ' Get data pulses.
+  irPulse = 0
+
+      PULSIN IrDet_Front, 0, irPulse
+
+      IF irPulse < ThresholdStart THEN
+        remoteCode = 99
+        RETURN
+      ENDIF
+
+      PULSIN IrDet_Front, 0, irPulse               ' Get data pulses.
       IF irPulse > ThresholdPulse THEN remoteCode.BIT0 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT1 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT2 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT3 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT4 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT5 = 1
-      PULSIN IrDet, 0, irPulse
+      PULSIN IrDet_Front, 0, irPulse
       IF irPulse > ThresholdPulse THEN remoteCode.BIT6 = 1
+
   ' Map digit keys to actual values.
   IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
   IF (remoteCode = 10) THEN remoteCode = 0
   RETURN
+
+Get_Ir_Remote_Code_Back:
+  MAINIO
+  remoteCode = 0
+  irPulse = 0
+      PULSIN IrDet_Back, 0, irPulse
+
+      IF irPulse < ThresholdStart THEN
+        remoteCode = 99
+        RETURN
+      ENDIF
+
+      PULSIN IrDet_Back, 0, irPulse               ' Get data pulses.
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT0 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT1 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT2 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT3 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT4 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT5 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT6 = 1
+
+  ' Map digit keys to actual values.
+  IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
+  IF (remoteCode = 10) THEN remoteCode = 0
+  RETURN
+
+Green:
+  AUXIO
+  HIGH Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
+
+Red:
+  AUXIO
+  LOW Green_LED
+  HIGH Red_LED
+  LOW Blue_LED
+RETURN
+
+Blue:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  HIGH Blue_LED
+RETURN
+
+LEDs_Off:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
