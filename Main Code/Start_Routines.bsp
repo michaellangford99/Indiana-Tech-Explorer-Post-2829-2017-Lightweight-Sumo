@@ -52,6 +52,10 @@ IRoutBack = 0
 SearchBit = 0
 SideBit = 0
 
+'LEDs
+Blue_LED       CON 11
+Red_LED        CON 12
+Green_LED      CON 10
 
 '**************************************************************************
 '**************************************************************************
@@ -334,11 +338,14 @@ Kill:
        RETURN
 
 Redlight:
+          GOSUB Green
+
           MAINIO
           SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
           SEROUT MotL, Bmode, ["!G ",SDEC ((0)<<3),CR]
 
           AUXIO
+
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
           SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
@@ -347,3 +354,31 @@ Redlight:
           LOW 14
           PAUSE 100
           GOTO redlight
+
+Green:
+  AUXIO
+  HIGH Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
+
+Red:
+  AUXIO
+  LOW Green_LED
+  HIGH Red_LED
+  LOW Blue_LED
+RETURN
+
+Blue:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  HIGH Blue_LED
+RETURN
+
+LEDs_Off:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
