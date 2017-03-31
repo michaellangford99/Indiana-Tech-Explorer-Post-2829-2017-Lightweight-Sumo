@@ -6,7 +6,7 @@ MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
 
-NUMRoutines CON        11
+NUMRoutines CON        11          'Number of start routine options
 
 ' --------------Variables------------------------
 '
