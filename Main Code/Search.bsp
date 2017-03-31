@@ -180,7 +180,7 @@ IF (SideBit = 1) THEN
 ENDIF
 
 'if Hitcount exceeds maximum, change directions
-IF HitCount_F > HitMax THEN
+IF (HitCount_F > HitMax) THEN
  SearchBit = SearchBit ^ 1 'make sure to change search direction
  SideBit=0
  HitCount_B = 0
@@ -191,7 +191,7 @@ IF HitCount_F > HitMax THEN
 ENDIF
 
 'if Hitcount exceeds maximum, change directions
-IF HitCount_B > HitMax THEN
+IF (HitCount_B > HitMax) THEN
  SearchBit = SearchBit ^ 1 'make sure to change search direction
  SideBit=1
  HitCount_B = 0
