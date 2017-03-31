@@ -5,7 +5,7 @@ MotR        CON        8           'Serial out pin for right motor
 MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
-
+IRPause     CON        4           'Pause between reading sensor pins
 
 
 ' --------------Variables------------------------
@@ -272,30 +272,62 @@ MAINIO
 'Front Plow Sensors
 IROutFront = 0
 
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
 FREQOUT 1, 2, 10407   'Right Front IR sensor
 IROutFront.BIT4 = IN6
+LOW 1
+PAUSE IRPause
 FREQOUT 2, 2, 10303   'Right Center Front IR sensor
 IROutFront.BIT3 = IN6
+LOW 2
+PAUSE IRPause
 FREQOUT 3, 2, 10812   'Center Front IR sensor
 IROutFront.BIT2 = IN6
+LOW 3
+PAUSE IRPause
 FREQOUT 4, 2, 17610   'Left Center Front IR sensor
 IROutFront.BIT1 = IN6
+LOW 4
+PAUSE IRPause
 FREQOUT 5, 2, 10725   'Left Front IR sensor
 IROutFront.BIT0 = IN6
+LOW 5
+PAUSE IRPause
 
 'Back Plow Sensors
 IROutBack = 0
 
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
 FREQOUT 10, 2, 10407   'Right Back IR sensor
 IROutBack.BIT4 = IN15
+LOW 10
+PAUSE IRPause
 FREQOUT 11, 2, 10303   'Right Center Back IR sensor
 IROutBack.BIT3 = IN15
+LOW 11
+PAUSE IRPause
 FREQOUT 12, 2, 10812   'Center Back IR sensor
 IROutBack.BIT2 = IN15
+LOW 12
+PAUSE IRPause
 FREQOUT 13, 2, 17610   'Left Center Back IR sensor
 IROutBack.BIT1 = IN15
+LOW 13
+PAUSE IRPause
 FREQOUT 14, 2, 10725   'Left Back IR sensor
 IROutBack.BIT0 = IN15
+LOW 14
+PAUSE IRPause
 
 'Uncomment for debugging purposes, will blind the sensors
 'IRoutFront = 31
