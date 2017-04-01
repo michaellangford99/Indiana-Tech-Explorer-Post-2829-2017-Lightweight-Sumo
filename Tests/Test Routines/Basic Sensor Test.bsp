@@ -1,5 +1,6 @@
 '{$STAMP BS2p}
-IRout   VAR   Byte
+IRoutFront   VAR   Byte
+IRoutBack    VAR   Byte
 
 
 
@@ -9,11 +10,18 @@ LOW 3
 LOW 4
 LOW 5
 
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
 
 Main:
 
 GOSUB Sensors
-DEBUG CLS, BIN5 IRout   'Use for printing sensor response
+DEBUG HOME, BIN5 IRoutFront   'Use for printing sensor response
+DEBUG CR, BIN5 IRoutBack   'Use for printing sensor response
 PAUSE 50
 GOTO Main
 
@@ -21,22 +29,42 @@ GOTO Main
 '****check IR sensors***********************************************
 
 Sensors:
-IROut = 0
+IRoutFront = 0
 
 FREQOUT 1, 2, 10000   'Right IR sensor
-IROUT.BIT4 = IN6
+IRoutFront.BIT4 = IN6
 
 FREQOUT 2, 2, 10000   'Right Center IR sensor
-IROUT.BIT3 = IN6
+IRoutFront.BIT3 = IN6
 
 FREQOUT 3, 2, 10000   'Center IR sensor
-IROUT.BIT2 = IN6
+IRoutFront.BIT2 = IN6
 
 FREQOUT 4, 2, 10000   'Left Center IR sensor
-IROUT.BIT1 = IN6
+IRoutFront.BIT1 = IN6
 
 FREQOUT 5, 2, 10000   'Left IR sensor
-IROUT.BIT0 = IN6
+IRoutFront.BIT0 = IN6
+
+
+
+
+IRoutBack = 0
+
+FREQOUT 11, 2, 10000   'Right IR sensor
+IRoutBack.BIT4 = IN15
+
+FREQOUT 11, 2, 10000   'Right Center IR sensor
+IRoutBack.BIT3 = IN15
+
+FREQOUT 12, 2, 10000   'Center IR sensor
+IRoutBack.BIT2 = IN15
+
+FREQOUT 13, 2, 10000   'Left Center IR sensor
+IRoutBack.BIT1 = IN15
+
+FREQOUT 14, 2, 10000   'Left IR sensor
+IRoutBack.BIT0 = IN15
 
 
 RETURN

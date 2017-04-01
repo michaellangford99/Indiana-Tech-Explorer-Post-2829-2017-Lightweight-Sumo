@@ -1,0 +1,136 @@
+eeschema (2013-07-07 BZR 4022)-stable  >> Creation date: 6/15/2016 8:12:20 PM
+#Cmp ( order = Reference )
+| C1         C           ~                   ; ~           ; ~           
+| C2         C           ~                   ; ~           ; ~           
+| C3         C           ~                   ; ~           ; ~           
+| C4         C           ~                   ; ~           ; ~           
+| D1         Green       ~                   ; ~           ; ~           
+| D2         DIODE       ~                   ; ~           ; ~           
+| D3         Red         ~                   ; ~           ; ~           
+| D4         LED         ~                   ; ~           ; ~           
+| D5         LED         ~                   ; ~           ; ~           
+| H1         Power Header~                   ; ~           ; ~           
+| H2         IROut Back  ~                   ; ~           ; ~           
+| H3         IRIn Front  ~                   ; ~           ; ~           
+| H4         IROut Front ~                   ; ~           ; ~           
+| H5         Motor Header~                   ; ~           ; ~           
+| H6         Programming Header~                   ; ~           ; ~           
+| H7         LCD Header  ~                   ; ~           ; ~           
+| H8         IRIn Back   ~                   ; ~           ; ~           
+| H9         Kill_H1     ~                   ; ~           ; ~           
+| H10        Kill_H2     ~                   ; ~           ; ~           
+| H11        AUX1        ~                   ; ~           ; ~           
+| H12        AUX2        ~                   ; ~           ; ~           
+| H13        AUX3        ~                   ; ~           ; ~           
+| H14        AUX4        ~                   ; ~           ; ~           
+| H15        CONN_1      ~                   ; ~           ; ~           
+| IC1        BS2P40      ~                   ; ~           ; ~           
+| K1         LM317       ~                   ; ~           ; ~           
+| K2         LM317       ~                   ; ~           ; ~           
+| K3         LM7805      ~                   ; ~           ; ~           
+| MJL_SW1    Power Switch~                   ; ~           ; ~           
+| MJL_SW2    PushB       ~                   ; ~           ; ~           
+| MJL_SW3    PushB       ~                   ; ~           ; ~           
+| P1         CONN_1      ~                   ; ~           ; ~           
+| P2         CONN_1      ~                   ; ~           ; ~           
+| P3         CONN_1      ~                   ; ~           ; ~           
+| P4         CONN_1      ~                   ; ~           ; ~           
+| P5         CONN_1      ~                   ; ~           ; ~           
+| P6         CONN_1      ~                   ; ~           ; ~           
+| P7         CONN_1      ~                   ; ~           ; ~           
+| P8         CONN_1      ~                   ; ~           ; ~           
+| Q1         IRF3205L    ~                   ; ~           ; ~           
+| Q2         IRF3205L    ~                   ; ~           ; ~           
+| Q3         IRF3205L    ~                   ; ~           ; ~           
+| Q4         IRF3205L    ~                   ; ~           ; ~           
+| R1         170         ~                   ; ~           ; ~           
+| R2         220         ~                   ; ~           ; ~           
+| R3         5K Bourns 32-66W~                   ; ~           ; ~           
+| R4         220         ~                   ; ~           ; ~           
+| R5         5K Bourns 32-66W~                   ; ~           ; ~           
+| R6         10K         ~                   ; ~           ; ~           
+| R7         1K          ~                   ; ~           ; ~           
+| R8         1K          ~                   ; ~           ; ~           
+| R9         10K         ~                   ; ~           ; ~           
+| R10        10K         ~                   ; ~           ; ~           
+| R11        1K          ~                   ; ~           ; ~           
+| R12        1K          ~                   ; ~           ; ~           
+| R13        100K        ~                   ; ~           ; ~           
+| R14        100K        ~                   ; ~           ; ~           
+| R15        10K         ~                   ; ~           ; ~           
+| R16        10K         ~                   ; ~           ; ~           
+| R17        10K         ~                   ; ~           ; ~           
+| R18        10K         ~                   ; ~           ; ~           
+| R19        220         ~                   ; ~           ; ~           
+| SW1        SWITCH_INV_5-PIN~                   ; ~           ; ~           
+| SW2        SPST        ~                   ; ~           ; ~           
+#End Cmp
+
+#Cmp ( order = Value )
+| C            C1        ; ~           ; ~           
+| C            C2        ; ~           ; ~           
+| C            C3        ; ~           ; ~           
+| C            C4        ; ~           ; ~           
+| Green        D1        ; ~           ; ~           
+| DIODE        D2        ; ~           ; ~           
+| Red          D3        ; ~           ; ~           
+| LED          D4        ; ~           ; ~           
+| LED          D5        ; ~           ; ~           
+| Power Header H1        ; ~           ; ~           
+| IROut Back   H2        ; ~           ; ~           
+| IRIn Front   H3        ; ~           ; ~           
+| IROut Front  H4        ; ~           ; ~           
+| Motor Header H5        ; ~           ; ~           
+| Programming Header H6        ; ~           ; ~           
+| LCD Header   H7        ; ~           ; ~           
+| IRIn Back    H8        ; ~           ; ~           
+| Kill_H1      H9        ; ~           ; ~           
+| Kill_H2      H10       ; ~           ; ~           
+| AUX1         H11       ; ~           ; ~           
+| AUX2         H12       ; ~           ; ~           
+| AUX3         H13       ; ~           ; ~           
+| AUX4         H14       ; ~           ; ~           
+| CONN_1       H15       ; ~           ; ~           
+| BS2P40       IC1       ; ~           ; ~           
+| LM317        K1        ; ~           ; ~           
+| LM317        K2        ; ~           ; ~           
+| LM7805       K3        ; ~           ; ~           
+| CONN_1       P1        ; ~           ; ~           
+| CONN_1       P2        ; ~           ; ~           
+| CONN_1       P3        ; ~           ; ~           
+| CONN_1       P4        ; ~           ; ~           
+| CONN_1       P5        ; ~           ; ~           
+| CONN_1       P6        ; ~           ; ~           
+| CONN_1       P7        ; ~           ; ~           
+| CONN_1       P8        ; ~           ; ~           
+| IRF3205L     Q1        ; ~           ; ~           
+| IRF3205L     Q2        ; ~           ; ~           
+| IRF3205L     Q3        ; ~           ; ~           
+| IRF3205L     Q4        ; ~           ; ~           
+| 170          R1        ; ~           ; ~           
+| 220          R2        ; ~           ; ~           
+| 220          R4        ; ~           ; ~           
+| 220          R19       ; ~           ; ~           
+| 1K           R7        ; ~           ; ~           
+| 1K           R8        ; ~           ; ~           
+| 1K           R11       ; ~           ; ~           
+| 1K           R12       ; ~           ; ~           
+| 5K Bourns 32-66W R3        ; ~           ; ~           
+| 5K Bourns 32-66W R5        ; ~           ; ~           
+| 10K          R6        ; ~           ; ~           
+| 10K          R9        ; ~           ; ~           
+| 10K          R10       ; ~           ; ~           
+| 10K          R15       ; ~           ; ~           
+| 10K          R16       ; ~           ; ~           
+| 10K          R17       ; ~           ; ~           
+| 10K          R18       ; ~           ; ~           
+| 100K         R13       ; ~           ; ~           
+| 100K         R14       ; ~           ; ~           
+| SWITCH_INV_5-PIN SW1       ; ~           ; ~           
+| PushB        MJL_SW3   ; ~           ; ~           
+| SPST         SW2       ; ~           ; ~           
+| Power Switch MJL_SW1   ; ~           ; ~           
+| PushB        MJL_SW2   ; ~           ; ~           
+#End Cmp
+
+#End List
