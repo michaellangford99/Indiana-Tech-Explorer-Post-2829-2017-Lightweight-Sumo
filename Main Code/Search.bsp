@@ -5,14 +5,14 @@ MotR        CON        8           'Serial out pin for right motor
 MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
-IRPause     CON        4           'Pause between reading sensor pins
+IRPause     CON        2           'Pause between reading sensor pins
 
 
 ' --------------Variables------------------------
 '
 Pattern     VAR        Byte        'The Start pattern to be run
 SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
-SideBit     VAR        Bit         'Side that opponent was last seen on (0 if front, 1 if back
+SideBit     VAR        Byte         'Side that opponent was last seen on (0 if front, 1 if back
 IRoutFront  VAR        Byte        'Front Sensor output to Branch
 IRoutBack   VAR        Byte        'Back Sensor output to Branch
 NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
@@ -23,6 +23,12 @@ HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
 HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
 
 HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+
+irPulse     VAR        Word        'Stores pulse widths
+remoteCode  VAR        Byte        'Stores remote code
+P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
+P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
+Time        VAR        Word        'Button push time accumulator
 
 ' --------------Initializations------------------
 '
@@ -70,7 +76,7 @@ GOSUB Sensors
 GOSUB Branching
 GOSUB Drive
 GOSUB Kill
-PAUSE 10
+'PAUSE 10
 GOTO Main
 
 
@@ -255,7 +261,7 @@ BRANCH IRoutBack, [B_Straight,B_EasyLeft,B_Left, B_Left, B_Straight,B_HardLeft,B
 
 '************Motor Routines************************************************
 F_StraightR:        '****************Straight, change search direction
-SearchBit = SearchBit ^ 1
+'SearchBit = SearchBit ^ 1
 GOTO F_Straight
 
 
@@ -436,9 +442,9 @@ Kill:
        IF (IN3 = 1) THEN GOTO Redlight
 
 
-       IF (IN14 = 0) THEN
+       IF IN14 = 0 THEN
         PAUSE 20
-        IF (IN14 = 0) THEN
+        IF IN14 = 0 THEN
           GOTO Redlight
         ENDIF
        ENDIF
