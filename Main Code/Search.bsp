@@ -8,6 +8,17 @@ DriveDelay  CON        6           'Delay to scale start routine times
 IRPause     CON        2           'Pause between reading sensor pins
 Reaction    CON        15          'smoothing value added to all turning commands.
                                    'the smaller (or more negative) a value, the harder thr robot will turn
+IR_FRONT_LEFT   CON      10725
+IR_FRONT_MLEFT  CON      10615
+IR_FRONT_MIDDLE CON      10812
+IR_FRONT_MRIGHT CON      10303
+IR_FRONT_RIGHT  CON      10407
+
+IR_BACK_LEFT    CON      10725
+IR_BACK_MLEFT   CON      17610
+IR_BACK_MIDDLE  CON      10812
+IR_BACK_MRIGHT  CON      10303
+IR_BACK_RIGHT   CON      10407
 
 ' --------------Variables------------------------
 '
@@ -133,23 +144,23 @@ LOW 3
 LOW 4
 LOW 5
 
-FREQOUT 1, 2, 10407   'Right Front IR sensor
+FREQOUT 1, 2, IR_FRONT_RIGHT   'Right Front IR sensor
 IROutFront.BIT4 = IN6
 LOW 1
 PAUSE IRPause
-FREQOUT 2, 2, 10303   'Right Center Front IR sensor
+FREQOUT 2, 2, IR_FRONT_MRIGHT   'Right Center Front IR sensor
 IROutFront.BIT3 = IN6
 LOW 2
 PAUSE IRPause
-FREQOUT 3, 2, 10812   'Center Front IR sensor
+FREQOUT 3, 2, IR_FRONT_MIDDLE   'Center Front IR sensor
 IROutFront.BIT2 = IN6
 LOW 3
 PAUSE IRPause
-FREQOUT 4, 2, 17610   'Left Center Front IR sensor
+FREQOUT 4, 2, IR_FRONT_MRIGHT   'Left Center Front IR sensor
 IROutFront.BIT1 = IN6
 LOW 4
 PAUSE IRPause
-FREQOUT 5, 2, 10725   'Left Front IR sensor
+FREQOUT 5, 2, IR_FRONT_LEFT   'Left Front IR sensor
 IROutFront.BIT0 = IN6
 LOW 5
 PAUSE IRPause
@@ -163,23 +174,23 @@ LOW 12
 LOW 13
 LOW 14
 
-FREQOUT 10, 2, 10407   'Right Back IR sensor
+FREQOUT 10, 2, IR_BACK_RIGHT   'Right Back IR sensor
 IROutBack.BIT4 = IN15
 LOW 10
 PAUSE IRPause
-FREQOUT 11, 2, 10303   'Right Center Back IR sensor
+FREQOUT 11, 2, IR_BACK_MRIGHT   'Right Center Back IR sensor
 IROutBack.BIT3 = IN15
 LOW 11
 PAUSE IRPause
-FREQOUT 12, 2, 10812   'Center Back IR sensor
+FREQOUT 12, 2, IR_BACK_MIDDLE   'Center Back IR sensor
 IROutBack.BIT2 = IN15
 LOW 12
 PAUSE IRPause
-FREQOUT 13, 2, 17610   'Left Center Back IR sensor
+FREQOUT 13, 2, IR_BACK_MLEFT   'Left Center Back IR sensor
 IROutBack.BIT1 = IN15
 LOW 13
 PAUSE IRPause
-FREQOUT 14, 2, 10725   'Left Back IR sensor
+FREQOUT 14, 2, IR_BACK_LEFT   'Left Back IR sensor
 IROutBack.BIT0 = IN15
 LOW 14
 PAUSE IRPause
@@ -456,6 +467,8 @@ Kill:
 
 Redlight:
           GOSUB Green
+
+          GOSUB Sensors
 
           MAINIO
           SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
