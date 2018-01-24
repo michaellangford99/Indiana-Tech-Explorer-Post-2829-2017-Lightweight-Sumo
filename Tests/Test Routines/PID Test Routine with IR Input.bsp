@@ -1,6 +1,18 @@
 ' {$STAMP BS2p}
 ' {$PBASIC 2.5}
 
+IR_FRONT_LEFT   CON      10725
+IR_FRONT_MLEFT  CON      10615
+IR_FRONT_MIDDLE CON      10812
+IR_FRONT_MRIGHT CON      10303
+IR_FRONT_RIGHT  CON      10407
+
+IR_BACK_LEFT    CON      10725
+IR_BACK_MLEFT   CON      17610
+IR_BACK_MIDDLE  CON      10812
+IR_BACK_MRIGHT  CON      10303
+IR_BACK_RIGHT   CON      10407
+
 '=====MOTORS====
 
 MotR        CON        8           'Serial out pin for right motor
@@ -10,9 +22,6 @@ DriveDelay  CON        6           'Delay to scale start routine times
 IRPause     CON        2           'Pause between reading sensor pins
 Reaction    CON        15          'smoothing value added to all turning commands.
 
-NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-                                   'the smaller (or more negative) a value, the harder thr robot will turn
 '====LED=====
 'LEDs
 Blue_LED       CON 11
@@ -20,7 +29,19 @@ Red_LED        CON 12
 Green_LED      CON 10
 
 '======IR=======
-IRout     VAR     Byte
+SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
+SideBit     VAR        Bit         'Side that opponent was last seen on (0 if front, 1 if back
+IRoutFront  VAR        Byte        'Front Sensor output to Branch
+IRoutBack   VAR        Byte        'Back Sensor output to Branch
+IRout       VAR        Byte        'sensor output of currently active side
+NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+
+HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
+HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
+
+HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+
 '======Lookup===
 Offset    VAR     Byte
 
@@ -30,11 +51,11 @@ P      VAR   Word
 I      VAR   Word
 D      VAR   Word
 
-kP     CON   1
+kP     CON   4
 kI     CON   1
-kD     CON   5
+kD     CON   1
 
-Div    CON   1 'divisor value
+Div    CON  1 'divisor value
 
 PMax   CON   200
 IMax   CON   200
@@ -49,36 +70,203 @@ LError VAR   Word
 PID_Output VAR Word
 
 'SETUP===============
-IRout = 0
+NewSpdRt = 127
+NewSpdLeft = 127
+IRoutFront = 0
+IRoutBack = 0
 Offset = 0
+SearchBit = 1
 
 Main:
+  '
   ' get sensor input
+  '
   GOSUB Sensors
-  'get lookup value
-  GOSUB PID_Lookup
-  ' we now have the PID input value in offset
-  GOSUB PID
-  'run motors
+
+  IF SideBit = 0 THEN
+    IRout = IRoutFront
+  ELSE
+    IRout = IRoutBack
+  ENDIF
+
+  '
+  ' index into PID input array
+  '
+  LOOKUP IRout, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], Offset
+  '                  00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
+  '                   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
+
+  '
+  ' check special case for search mode
+  '
+  IF IRout & 3 <> 3 THEN
+      SearchBit = 1
+  ELSEIF IRout & 24 <> 24 THEN
+      SearchBit = 0
+  ENDIF
+
+  IF (IRout = 31) THEN
+     IF SearchBit = 0 THEN
+        offset = 60
+     ENDIF
+     IF SearchBit = 1 THEN
+        offset = 12
+     ENDIF
+  ENDIF
+
+  'detect which side has more hits
+
+  'if Side = Front
+  IF (SideBit = 0) THEN
+   'if there are hits on the opposite plow alone, increase hit counter
+   IF (IRoutFront = 31) AND (IRoutBack < 31) THEN
+     HitCount_F = 0
+     HitCount_B = HitCount_B + 1
+   ELSE
+     'Otherwise, zero the counters
+     HitCount_F = 0
+     HitCount_B = 0
+   ENDIF
+  ENDIF
+
+  'if Side = Back
+  IF (SideBit = 1) THEN
+   'if there are hits on the opposite plow alone, increase hit counter
+   IF (IRoutBack = 31) AND (IRoutFront < 31) THEN
+     HitCount_B = 0
+     HitCount_F = HitCount_F + 1
+   ELSE
+     'Otherwise, zero the counters
+     HitCount_B = 0
+     HitCount_F = 0
+   ENDIF
+  ENDIF
+
+  'if Hitcount exceeds maximum, change directions
+  IF (HitCount_F > HitMax) THEN
+   SearchBit = SearchBit ^ 1 'make sure to change search direction
+   SideBit=0
+   HitCount_B = 0
+   HitCount_F = 0
+   'Write new direction bit to EEPROM, at address #0
+   WRITE 0, SideBit
+   GOTO Main
+  ENDIF
+
+  'if Hitcount exceeds maximum, change directions
+  IF (HitCount_B > HitMax) THEN
+   SearchBit = SearchBit ^ 1 'make sure to change search direction
+   SideBit=1
+   HitCount_B = 0
+   HitCount_F = 0
+
+   'Write new direction bit to EEPROM, at address #0
+   WRITE 0, SideBit
+   GOTO Main
+  ENDIF
+
+  '
+  ' run PID loop
+  '
+  real = offset
+  Target = 36
+  Error = real - Target
+
+  P = Error * kP
+  I = 0'I + (Error * kI)
+  D = (Error-LError) * kD
+  PID_Output = (P+I+D)
+
+  LError = Error
+
+  '
+  ' Translate into motor outputs
+  '
+  IF SideBit = 0 THEN
+    IF PID_Output > (65535/2) THEN
+      NewSpdRt = 255 - ((ABS PID_Output)/Div)
+      NewSpdLeft = 255
+    ELSE
+      NewSpdRt = 255
+      NewSpdLeft = 255 - ((ABS PID_Output)/Div)
+    ENDIF
+
+    IF PID_Output = 0 THEN
+      NewSpdRt = 255
+      NewSpdLeft = 255
+    ENDIF
+  ELSE
+    IF PID_Output > (65535/2) THEN
+      NewSpdRt = 0
+      NewSpdLeft = 0 + ((ABS PID_Output)/Div)
+    ELSE
+      NewSpdRt = 0 + ((ABS PID_Output)/Div)
+      NewSpdLeft = 0
+    ENDIF
+
+    IF PID_Output = 0 THEN
+      NewSpdRt = 0
+      NewSpdLeft = 0
+    ENDIF
+  ENDIF
+
   GOSUB Drive
-  'check kill
   GOSUB Kill
 
-  'display program output===========
-  'IR in
-  DEBUG  CLS, BIN5 IROut
-  'lookup output
-  DEBUG  CR, SDEC Offset
-  'PID output
-  DEBUG CR, "P: ", SDEC P
-  DEBUG CR, "I: ", SDEC I
-  DEBUG CR, "D: ", SDEC D
-  DEBUG CR, "Output: ", SDEC PID_Output
-  GOTO main
+GOTO main
+
+
+
+
+
+
+
+
+
+
+
+
 '=================subprograms==================
+
+'**************************************************************************
+'**************************************************************************
+'*************Check Sensors************************************************
 
 Sensors:
 MAINIO
+
+'Front Plow Sensors
+IROutFront = 0
+
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+FREQOUT 1, 2, IR_FRONT_RIGHT   'Right Front IR sensor
+IROutFront.BIT4 = IN6
+LOW 1
+PAUSE IRPause
+FREQOUT 2, 2, IR_FRONT_MRIGHT   'Right Center Front IR sensor
+IROutFront.BIT3 = IN6
+LOW 2
+PAUSE IRPause
+FREQOUT 3, 2, IR_FRONT_MIDDLE   'Center Front IR sensor
+IROutFront.BIT2 = IN6
+LOW 3
+PAUSE IRPause
+FREQOUT 4, 2, IR_FRONT_MRIGHT   'Left Center Front IR sensor
+IROutFront.BIT1 = IN6
+LOW 4
+PAUSE IRPause
+FREQOUT 5, 2, IR_FRONT_LEFT   'Left Front IR sensor
+IROutFront.BIT0 = IN6
+LOW 5
+PAUSE IRPause
+
+'Back Plow Sensors
+IROutBack = 0
 
 LOW 10
 LOW 11
@@ -86,51 +274,32 @@ LOW 12
 LOW 13
 LOW 14
 
+FREQOUT 10, 2, IR_BACK_RIGHT   'Right Back IR sensor
+IROutBack.BIT0 = IN15
+LOW 10
+PAUSE IRPause
+FREQOUT 11, 2, IR_BACK_MRIGHT   'Right Center Back IR sensor
+IROutBack.BIT1 = IN15
+LOW 11
+PAUSE IRPause
+FREQOUT 12, 2, IR_BACK_MIDDLE   'Center Back IR sensor
+IROutBack.BIT2 = IN15
+LOW 12
+PAUSE IRPause
+FREQOUT 13, 2, IR_BACK_MLEFT   'Left Center Back IR sensor
+IROutBack.BIT3 = IN15
+LOW 13
+PAUSE IRPause
+FREQOUT 14, 2, IR_BACK_LEFT   'Left Back IR sensor
+IROutBack.BIT4 = IN15
+LOW 14
+PAUSE IRPause
 
-FREQOUT 10, 2, 10407   'Right Back IR sensor
-IROut.BIT4 = IN15
-FREQOUT 11, 2, 10303   'Right Center Back IR sensor
-IROut.BIT3 = IN15
-FREQOUT 12, 2, 10812   'Center Back IR sensor
-IROut.BIT2 = IN15
-FREQOUT 13, 2, 17610   'Left Center Back IR sensor
-IROut.BIT1 = IN15
-FREQOUT 14, 2, 10725   'Left Back IR sensor
-IROut.BIT0 = IN15
+'Uncomment for debugging purposes, will blind the sensors
+'IRoutFront = 31
+'IRoutBack = 31
 
 RETURN
-
-PID_Lookup:
-LOOKUP IRout, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], Offset
-'              00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
-'                0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
-RETURN
-
-PID:
-real = offset
-Target = 36
-Error = real - Target
-
-P = Error * kP
-I = 0'I + (Error * kI)
-D = (Error-LError) * kD
-
-'IF (I > PMax)    THEN I = PMax
-'IF (I < (-PMax)) THEN I = -PMax
-
-'P = P MIN PMax
-'P = P MAX (-PMax)
-'I = I MIN IMax
-'I = I MAX (-IMax)
-'D = D MIN DMax
-'D = D MAX (-DMax)
-
-PID_Output = (P+I+D)/Div
-
-LError = Error
-RETURN
-
-
 
 '**************************************************************
 '*****************************Kill*****************************
@@ -156,6 +325,8 @@ Kill:
 Redlight:
           GOSUB Green
 
+          GOSUB Sensors
+
           MAINIO
           SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
           SEROUT MotL, Bmode, ["!G ",SDEC ((0)<<3),CR]
@@ -164,8 +335,8 @@ Redlight:
 
           SEROUT 15,2,[27,115]
           SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
-          SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROut, "        "]
-          SEROUT 15,2,[27,76,0,2,"       ", "     ",  "        "]
+          SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
+          SEROUT 15,2,[27,76,0,2,"       ", BIN5 IROutBack,  "        "]
           SEROUT 15,2,[27,76,0,3,"                    "]
           LOW 14
           PAUSE 100
@@ -180,16 +351,21 @@ Drive:
 'uncomment if Display routine is removed
 'PAUSE DriveDelay
 
-NewSpdRt = 127 - PID_Output
-NewSpdLeft = 127 + PID_Output
-
 'Displays debug information on Serial LCD
 AUXIO
 SEROUT 15,2,[27,115]
-SEROUT 15,2,[27,76,0,0,"Rt:   ",DEC NewSpdRt,   "   "]
-SEROUT 15,2,[27,76,0,1,"Left: ",DEC NewSpdLeft, "   "]
+SEROUT 15,2,[27,76,0,0,"Rt: ",DEC NewSpdRt,   "   "]
+SEROUT 15,2,[27,76,0,1,"LT: ",DEC NewSpdLeft, "   "]
 
-SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROut]
+SEROUT 15,2,[27,76,10,0,"Side:   ", BIN1 SideBit]
+SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
+
+SEROUT 15,2,[27,76,0,2,"F: ",BIN5 IROutFront, " B: ", BIN5 IROutBack]
+
+SEROUT 15,2,[27,76,0,3,"F",DEC HitCount_F, "   "]
+SEROUT 15,2,[27,76,5,3,"B",DEC HitCount_B, "   "]
+
+SEROUT 15,2,[27,76,10,3,"PID ",SDEC PID_Output,"   "]
 
 MAINIO
 SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
