@@ -1,6 +1,13 @@
 ' {$STAMP BS2p}
 ' {$PBASIC 2.5}
 
+MotR        CON        8           'Serial out pin for right motor
+MotL        CON        9           'Serial out pin for left motor
+Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
+DriveDelay  CON        6           'Delay to scale start routine times
+IRPause     CON        2           'Pause between reading sensor pins
+Reaction    CON        15          'smoothing value added to all turning commands.
+                                   'the smaller (or more negative) a value, the harder the robot will turn
 IR_FRONT_LEFT   CON      10725
 IR_FRONT_MLEFT  CON      10615
 IR_FRONT_MIDDLE CON      10812
@@ -13,53 +20,30 @@ IR_BACK_MIDDLE  CON      10812
 IR_BACK_MRIGHT  CON      10303
 IR_BACK_RIGHT   CON      10407
 
-'=====MOTORS====
-
-MotR        CON        8           'Serial out pin for right motor
-MotL        CON        9           'Serial out pin for left motor
-Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
-DriveDelay  CON        6           'Delay to scale start routine times
-IRPause     CON        2           'Pause between reading sensor pins
-Reaction    CON        15          'smoothing value added to all turning commands.
-
-'====LED=====
-'LEDs
-Blue_LED       CON 11
-Red_LED        CON 12
-Green_LED      CON 10
-
-'======IR=======
-SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
-SideBit     VAR        Bit         'Side that opponent was last seen on (0 if front, 1 if back
-IRoutFront  VAR        Byte        'Front Sensor output to Branch
-IRoutBack   VAR        Byte        'Back Sensor output to Branch
-IRout       VAR        Byte        'sensor output of currently active side
-NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
-
-HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
-HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
-
-HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
-
-'======Lookup===
-Offset    VAR     Byte
-
-
-'======PID======
-P      VAR   Word
-I      VAR   Word
-D      VAR   Word
-
 kP     CON   4
 kI     CON   1
 kD     CON   1
 
-Div    CON  1 'divisor value
+Div    CON  1
 
-PMax   CON   200
-IMax   CON   200
-DMax   CON   200
+' --------------Variables------------------------
+'
+Pattern     VAR        Byte        'The Start pattern to be run
+SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
+SideBit     VAR        Bit         'Side that opponent was last seen on (0 if front, 1 if back
+IRoutFront  VAR        Byte        'Front Sensor output to Branch
+IRoutBack   VAR        Byte        'Back Sensor output to Branch
+NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Delay       VAR        Byte        'Counter
+
+HitCount_F  VAR        Nib         'Hit Counter for Front Sensors
+HitCount_B  VAR        Nib         'Hit Counter for Back Sensors
+
+HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+
+P      VAR   Word
+D      VAR   Word
 
 Target VAR   Word
 real   VAR   Word
@@ -68,14 +52,50 @@ Error  VAR   Word
 LError VAR   Word
 
 PID_Output VAR Word
+' --------------Initializations------------------
+'
+MAINIO
+'turn off IR LEDS
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
 
-'SETUP===============
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
+AUXIO
+INPUT 0
+INPUT 1
+INPUT 2
+INPUT 3
+
+'initialize variables
 NewSpdRt = 127
 NewSpdLeft = 127
+Pattern = 0
+Delay = 0
 IRoutFront = 0
 IRoutBack = 0
-Offset = 0
-SearchBit = 1
+
+'LEDs
+Blue_LED       CON 11
+Red_LED        CON 12
+Green_LED      CON 10
+
+'**************************************************************************
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+'uncomment to test start routines
+'DO
+'GOSUB Redlight
+'LOOP
 
 Main:
   '
@@ -83,39 +103,57 @@ Main:
   '
   GOSUB Sensors
 
-  IF SideBit = 0 THEN
-    IRout = IRoutFront
-  ELSE
-    IRout = IRoutBack
-  ENDIF
-
   '
   ' index into PID input array
   '
-  LOOKUP IRout, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], Offset
-  '                  00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
-  '                   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
+  IF SideBit = 0 THEN
+    LOOKUP IRoutFront, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], real
+    '                 00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
+    '                   0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
+  ELSE
+    LOOKUP IRoutBack, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], real
+    '                00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
+    '                  0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
+  ENDIF
 
   '
   ' check special case for search mode
   '
-  IF IRout & 3 <> 3 THEN
-      SearchBit = 1
-  ELSEIF IRout & 24 <> 24 THEN
-      SearchBit = 0
+  IF SideBit = 0 THEN
+    IF IRoutFront & 3 <> 3 THEN
+        SearchBit = 1
+    ELSEIF IRoutFront & 24 <> 24 THEN
+        SearchBit = 0
+    ENDIF
+
+    IF (IRoutFront = 31) THEN
+       IF SearchBit = 0 THEN
+          real = 60
+       ENDIF
+       IF SearchBit = 1 THEN
+          real = 12
+       ENDIF
+    ENDIF
+  ELSE
+    IF IRoutBack & 3 <> 3 THEN
+        SearchBit = 1
+    ELSEIF IRoutBack & 24 <> 24 THEN
+        SearchBit = 0
+    ENDIF
+
+    IF (IRoutBack = 31) THEN
+       IF SearchBit = 0 THEN
+          real = 60
+       ENDIF
+       IF SearchBit = 1 THEN
+          real = 12
+       ENDIF
+    ENDIF
   ENDIF
 
-  IF (IRout = 31) THEN
-     IF SearchBit = 0 THEN
-        offset = 60
-     ENDIF
-     IF SearchBit = 1 THEN
-        offset = 12
-     ENDIF
-  ENDIF
-
-  'detect which side has more hits
-
+  '
+  ' detect which side has more hits
+  '
   'if Side = Front
   IF (SideBit = 0) THEN
    'if there are hits on the opposite plow alone, increase hit counter
@@ -168,14 +206,13 @@ Main:
   '
   ' run PID loop
   '
-  real = offset
   Target = 36
   Error = real - Target
 
   P = Error * kP
-  I = 0'I + (Error * kI)
+  'I = 0'I + (Error * kI)
   D = (Error-LError) * kD
-  PID_Output = (P+I+D)
+  PID_Output = (P+D)'P+I+D
 
   LError = Error
 
@@ -214,19 +251,6 @@ Main:
   GOSUB Kill
 
 GOTO main
-
-
-
-
-
-
-
-
-
-
-
-
-'=================subprograms==================
 
 '**************************************************************************
 '**************************************************************************
