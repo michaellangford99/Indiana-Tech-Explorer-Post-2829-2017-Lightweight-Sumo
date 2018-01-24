@@ -1,0 +1,477 @@
+' {$STAMP BS2p, Start_Routines.bsp, Search.bsp}
+' {$PBASIC 2.5}
+
+MotR        CON        8           'Serial out pin for right motor
+MotL        CON        9           'Serial out pin for left motor
+Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
+DriveDelay  CON        6           'Delay to scale start routine times
+IRPause     CON        2           'Pause between reading sensor pins
+NUMRoutines CON        11          'Number of start routine options
+
+IR_FRONT_LEFT   CON      10725
+IR_FRONT_MLEFT  CON      10615
+IR_FRONT_MIDDLE CON      10812
+IR_FRONT_MRIGHT CON      10303
+IR_FRONT_RIGHT  CON      10407
+
+IR_BACK_LEFT    CON      10725
+IR_BACK_MLEFT   CON      17610
+IR_BACK_MIDDLE  CON      10812
+IR_BACK_MRIGHT  CON      10303
+IR_BACK_RIGHT   CON      10407
+
+' --------------Variables------------------------
+'
+Pattern     VAR        Byte        'The Start pattern to be run
+SearchBit   VAR        Bit         'Start pattern search bit - 0 if search to the left, 1 if search to the right
+SideBit     VAR        Byte         'Side that opponent was last seen on (0 if front, 1 if back
+IRoutFront  VAR        Byte        'Front Sensor output to Branch
+IRoutBack   VAR        Byte        'Back Sensor output to Branch
+NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+Delay       VAR        Byte        'Counter
+
+HitCount_F  VAR        Byte        'Hit Counter for Front Sensors
+HitCount_B  VAR        Byte        'Hit Counter for Back Sensors
+
+HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+
+irPulse     VAR        Word        'Stores pulse widths
+remoteCode  VAR        Byte        'Stores remote code
+P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
+P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
+Time        VAR        Word        'Button push time accumulator
+
+StartCount  VAR        Word        'Time since Routine began
+
+' --------------Initializations------------------
+'
+MAINIO
+'turn off IR LEDS
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
+AUXIO
+INPUT 0
+INPUT 1
+INPUT 2
+INPUT 3
+'HIGH 14                            ' uncomment to drive high Kill switch button
+
+'initialize variables
+IRoutFront = 0
+IRoutBack = 0
+Pattern = 1
+SearchBit=0
+SideBit=0
+
+IrDet_Front    PIN     6           ' I/O pin to IR detector output
+IrDet_Back     PIN     15          ' I/O pin to IR detector output
+
+ThresholdStart CON 2400            ' Binary 1 vs. start pulse
+ThresholdPulse CON 500  * 5 / 2    ' Binary 1 vs. 0 for PULSIN
+
+'LEDs
+Blue_LED       CON 11
+Red_LED        CON 12
+Green_LED      CON 10
+
+
+'Check for reset
+AUXIO
+IF (IN5=0) OR (IN6=0) THEN
+ READ 0, SideBit
+ RUN 2
+ENDIF
+
+'**************************************************************************
+'**************************************************************************
+'***************Main Program***********************************************
+
+PAUSE 500
+
+Main:
+  GOSUB Blue
+  GOSUB Kill
+  GOSUB Sensors
+  GOSUB PushButton
+  GOSUB Display
+
+  PAUSE 100
+
+GOTO Main
+
+'**************************************************************************
+'**************************************************************************
+'*************Check Sensors************************************************
+
+Sensors:
+MAINIO
+
+'Front Plow Sensors
+IROutFront = 0
+
+LOW 1
+LOW 2
+LOW 3
+LOW 4
+LOW 5
+
+FREQOUT 1, 2, IR_FRONT_RIGHT   'Right Front IR sensor
+IROutFront.BIT4 = IN6
+LOW 1
+PAUSE IRPause
+FREQOUT 2, 2, IR_FRONT_MRIGHT   'Right Center Front IR sensor
+IROutFront.BIT3 = IN6
+LOW 2
+PAUSE IRPause
+FREQOUT 3, 2, IR_FRONT_MIDDLE   'Center Front IR sensor
+IROutFront.BIT2 = IN6
+LOW 3
+PAUSE IRPause
+FREQOUT 4, 2, IR_FRONT_MLEFT   'Left Center Front IR sensor
+IROutFront.BIT1 = IN6
+LOW 4
+PAUSE IRPause
+FREQOUT 5, 2, IR_FRONT_LEFT   'Left Front IR sensor
+IROutFront.BIT0 = IN6
+LOW 5
+PAUSE IRPause
+
+'Back Plow Sensors
+IROutBack = 0
+
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
+FREQOUT 10, 2, IR_BACK_RIGHT   'Right Back IR sensor
+IROutBack.BIT4 = IN15
+'LOW 10
+PAUSE IRPause
+FREQOUT 11, 2, IR_BACK_MRIGHT    'Right Center Back IR sensor
+IROutBack.BIT3 = IN15
+'LOW 11
+PAUSE IRPause
+FREQOUT 12, 2, IR_BACK_MIDDLE   'Center Back IR sensor
+IROutBack.BIT2 = IN15
+'LOW 12
+PAUSE IRPause
+FREQOUT 13, 2, IR_BACK_MLEFT   'Left Center Back IR sensor
+IROutBack.BIT1 = IN15
+'LOW 13
+PAUSE IRPause
+FREQOUT 14, 2, IR_BACK_LEFT   'Left Back IR sensor
+IROutBack.BIT0 = IN15
+'LOW 14
+PAUSE IRPause
+
+'Uncomment for debugging purposes, will blind the sensors
+'IRoutFront = 31
+'IRoutBack = 31
+
+RETURN
+
+
+'**************************************************************************
+'**************************************************************************
+'***************Check Pushbuttons******************************************
+
+
+Pushbutton:
+'=========== Start Left + Start Right Toggle Buttons ===========
+AUXIO
+IF IN5=0 THEN
+  SearchBit=0         'Set searchbit to left
+  PUT 0, Pattern      'store Pattern in scratch RAM at address #0
+  PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
+  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
+  GOTO IRStart        'Wait to be started by Remote
+ENDIF
+AUXIO
+IF IN6=0 THEN
+  SearchBit=1         'Set searchbit to right
+  PUT 0, Pattern      'store Pattern in scratch RAM at address #0
+  PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
+  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
+  GOTO IRStart        'Wait to be started by Remote
+ENDIF
+
+
+'============== Increase + Decrease Buttons ====================
+AUXIO
+IF IN7=0 THEN
+  DO UNTIL IN7=1      'Wait until button is released
+    PAUSE 2
+  LOOP
+  Pattern=Pattern+1   'Increase Routine number
+  IF Pattern > NUMRoutines THEN Pattern=1      'Roll over routine number
+ENDIF
+
+AUXIO
+IF IN4=0 THEN
+  DO UNTIL IN4=1      'Wait until button is released
+    PAUSE 2
+  LOOP
+  Pattern=Pattern-1   'Decrease Routine number
+  IF Pattern < 1 THEN Pattern=NUMRoutines     'Roll over routine number
+ENDIF
+
+RETURN
+
+'**************************************************************************
+'**************************************************************************
+'***************Update Display*********************************************
+
+
+Display:
+      AUXIO
+      IF Pattern=1 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"SSSBackAForward"]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=2 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"  SSOTurnKill   "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=3 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"SSOForwardSearch"]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=4 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"    FFCharge    "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=5 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0," BBOutLoopBack  "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=6 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"   FFTurnSide   "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=7 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0," FFBack45Charge "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=8 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"  BB!!!Charge   "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=9 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0," BB270Loopkill  "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=10 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"  SSSTurnKill   "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+      IF Pattern=11 THEN
+        SEROUT 15,2,[27,115]
+        SEROUT 15,2,[27,76,2,0,"    BBCharge    "]
+        SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+        SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+      ENDIF
+
+RETURN
+
+'**************************************************************
+'*****************************Kill*****************************
+'**************************************************************
+
+Kill:
+       AUXIO
+       IF (IN0 = 1) THEN GOTO Redlight
+       IF (IN1 = 1) THEN GOTO Redlight
+       IF (IN2 = 1) THEN GOTO Redlight
+       IF (IN3 = 1) THEN GOTO Redlight
+
+
+       IF (IN14 = 0) THEN
+        PAUSE 20
+        IF (IN14 = 0) THEN
+          GOTO Redlight
+        ENDIF
+       ENDIF
+
+       RETURN
+
+Redlight:
+          GOSUB Green
+
+          GOSUB Sensors
+
+          MAINIO
+          SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
+          SEROUT MotL, Bmode, ["!G ",SDEC ((0)<<3),CR]
+
+          AUXIO
+
+          SEROUT 15,2,[27,115]
+          SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
+          SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROutFront, "        "]
+          SEROUT 15,2,[27,76,0,2,"       ", BIN5 IROutBack,  "        "]
+          'SEROUT 15,2,[27,76,0,3,"                    "]
+          LOW 14
+          PAUSE 100
+          GOTO redlight
+
+
+'**************************************************************************
+'**************************************************************************
+'***************IR Start***************************************************
+
+IRStart:
+AUXIO
+SEROUT 15,2,[27,115]
+SEROUT 15,2,[27,76,0,0,"      IR Start      "]
+SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
+SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
+'SEROUT 15,2,[27,76,0,3,"                    "]
+
+DO                                           ' Main DO...LOOP
+  'check both front and back sensors for the IR start signal....
+  GOSUB Red
+
+  '!!!Important!!! - allows bot to be killed while armed
+  GOSUB Kill
+
+  GOSUB Get_Ir_Remote_Code_Front             ' Call remote code subroutine
+  SELECT remoteCode                          ' Select message to display
+    CASE 0 TO 9
+      GOSUB LEDs_Off
+      RUN 1                                  ' Begin the Start Routine (Start_Routines.bsp)
+    ENDSELECT
+  'GOSUB Blue
+  GOSUB Get_Ir_Remote_Code_Back              ' Call remote code subroutine
+  SELECT remoteCode                          ' Select message to display
+    CASE 0 TO 9
+      GOSUB LEDs_Off
+      RUN 1                                  ' Begin the Start Routine (Start_Routines.bsp)
+    ENDSELECT
+
+LOOP                                         ' Repeat main DO...LOOP
+
+'Should this be modified to use both front and back sensors?
+Get_Ir_Remote_Code_Front:
+  MAINIO
+  remoteCode = 0
+  irPulse = 0
+
+      PULSIN IrDet_Front, 0, irPulse
+
+      IF irPulse < ThresholdStart THEN
+        remoteCode = 99
+        RETURN
+      ENDIF
+
+      PULSIN IrDet_Front, 0, irPulse               ' Get data pulses.
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT0 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT1 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT2 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT3 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT4 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT5 = 1
+      PULSIN IrDet_Front, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT6 = 1
+
+  ' Map digit keys to actual values.
+  IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
+  IF (remoteCode = 10) THEN remoteCode = 0
+  RETURN
+
+Get_Ir_Remote_Code_Back:
+  MAINIO
+  remoteCode = 0
+  irPulse = 0
+      PULSIN IrDet_Back, 0, irPulse
+
+      IF irPulse < ThresholdStart THEN
+        remoteCode = 99
+        RETURN
+      ENDIF
+
+      PULSIN IrDet_Back, 0, irPulse               ' Get data pulses.
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT0 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT1 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT2 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT3 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT4 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT5 = 1
+      PULSIN IrDet_Back, 0, irPulse
+      IF irPulse > ThresholdPulse THEN remoteCode.BIT6 = 1
+
+  ' Map digit keys to actual values.
+  IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
+  IF (remoteCode = 10) THEN remoteCode = 0
+  RETURN
+
+
+Green:
+  AUXIO
+  HIGH Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
+
+Red:
+  AUXIO
+  LOW Green_LED
+  HIGH Red_LED
+  LOW Blue_LED
+RETURN
+
+Blue:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  HIGH Blue_LED
+RETURN
+
+LEDs_Off:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
