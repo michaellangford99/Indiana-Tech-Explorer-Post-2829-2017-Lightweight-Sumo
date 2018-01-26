@@ -8,6 +8,7 @@ DriveDelay  CON        6           'Delay to scale start routine times
 IRPause     CON        2           'Pause between reading sensor pins
 NUMRoutines CON        11          'Number of start routine options
 
+
 ' --------------Variables------------------------
 '
 Pattern     VAR        Byte        'The Start pattern to be run
@@ -29,6 +30,8 @@ remoteCode  VAR        Byte        'Stores remote code
 P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
 P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
 Time        VAR        Word        'Button push time accumulator
+
+StartCount  VAR        Word        'Time since Routine began
 
 ' --------------Initializations------------------
 '
@@ -267,7 +270,7 @@ Display:
       ENDIF
       IF Pattern=8 THEN
         SEROUT 15,2,[27,115]
-        SEROUT 15,2,[27,76,2,0,"  BB180Charge   "]
+        SEROUT 15,2,[27,76,2,0,"  BB!!!Charge   "]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
@@ -348,6 +351,9 @@ DO                                           ' Main DO...LOOP
   'check both front and back sensors for the IR start signal....
   GOSUB Red
 
+  '!!!Important!!! - aqllows bot to be killed while armed
+  GOSUB Kill
+
   GOSUB Get_Ir_Remote_Code_Front             ' Call remote code subroutine
   SELECT remoteCode                          ' Select message to display
     CASE 0 TO 9
@@ -427,6 +433,7 @@ Get_Ir_Remote_Code_Back:
   IF (remoteCode < 10) THEN remoteCode = remoteCode + 1
   IF (remoteCode = 10) THEN remoteCode = 0
   RETURN
+
 
 Green:
   AUXIO
