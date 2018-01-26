@@ -367,6 +367,7 @@ PAUSE IRPause
 'IRoutBack = 31
 
 'if the start routine has been started very recently, blind the sensors
+'this prevents lingering IR information from remote from triggering an exit from the start routine
 IF StartCount < StartThresh THEN
   StartCount = StartCount + 1
   IRoutFront = 31
