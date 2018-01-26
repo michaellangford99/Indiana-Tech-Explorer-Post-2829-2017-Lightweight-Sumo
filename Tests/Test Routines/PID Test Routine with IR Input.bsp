@@ -1,0 +1,226 @@
+' {$STAMP BS2p}
+' {$PBASIC 2.5}
+
+'=====MOTORS====
+
+MotR        CON        8           'Serial out pin for right motor
+MotL        CON        9           'Serial out pin for left motor
+Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
+DriveDelay  CON        6           'Delay to scale start routine times
+IRPause     CON        2           'Pause between reading sensor pins
+Reaction    CON        15          'smoothing value added to all turning commands.
+
+NewSpdRt    VAR        Byte        'Right motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+NewSpdLeft  VAR        Byte        'Left motor speed 0 is full reverse, 255 is full forward, 127 and 128 are off
+                                   'the smaller (or more negative) a value, the harder thr robot will turn
+'====LED=====
+'LEDs
+Blue_LED       CON 11
+Red_LED        CON 12
+Green_LED      CON 10
+
+'======IR=======
+IRout     VAR     Byte
+'======Lookup===
+Offset    VAR     Byte
+
+
+'======PID======
+P      VAR   Word
+I      VAR   Word
+D      VAR   Word
+
+kP     CON   1
+kI     CON   1
+kD     CON   5
+
+Div    CON   1 'divisor value
+
+PMax   CON   200
+IMax   CON   200
+DMax   CON   200
+
+Target VAR   Word
+real   VAR   Word
+
+Error  VAR   Word
+LError VAR   Word
+
+PID_Output VAR Word
+
+'SETUP===============
+IRout = 0
+Offset = 0
+
+Main:
+  ' get sensor input
+  GOSUB Sensors
+  'get lookup value
+  GOSUB PID_Lookup
+  ' we now have the PID input value in offset
+  GOSUB PID
+  'run motors
+  GOSUB Drive
+  'check kill
+  GOSUB Kill
+
+  'display program output===========
+  'IR in
+  DEBUG  CLS, BIN5 IROut
+  'lookup output
+  DEBUG  CR, SDEC Offset
+  'PID output
+  DEBUG CR, "P: ", SDEC P
+  DEBUG CR, "I: ", SDEC I
+  DEBUG CR, "D: ", SDEC D
+  DEBUG CR, "Output: ", SDEC PID_Output
+  GOTO main
+'=================subprograms==================
+
+Sensors:
+MAINIO
+
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
+
+FREQOUT 10, 2, 10407   'Right Back IR sensor
+IROut.BIT4 = IN15
+FREQOUT 11, 2, 10303   'Right Center Back IR sensor
+IROut.BIT3 = IN15
+FREQOUT 12, 2, 10812   'Center Back IR sensor
+IROut.BIT2 = IN15
+FREQOUT 13, 2, 17610   'Left Center Back IR sensor
+IROut.BIT1 = IN15
+FREQOUT 14, 2, 10725   'Left Back IR sensor
+IROut.BIT0 = IN15
+
+RETURN
+
+PID_Lookup:
+LOOKUP IRout, [36,   42,   39,   48,   36,   44,   40,   54,   33,   40,   36,   48,   32,   42,   36,   60,   30,   36,   32,   42,   28,   36,   30,   48,   24,   30,   24,   36,   18,   24,   12,   36 ], Offset
+'              00000 00001 00010 00011 00100 00101 00110 00111 01000 01001 01010 01011 01100 01101 01110 01111 10000 10001 10010 10011 10100 10101 10110 10111 11000 11001 11010 11011 11100 11101 11110 11111   'really 0
+'                0     1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21    22    23    24    25    26    27    28    29    30    31
+RETURN
+
+PID:
+real = offset
+Target = 36
+Error = real - Target
+
+P = Error * kP
+I = 0'I + (Error * kI)
+D = (Error-LError) * kD
+
+'IF (I > PMax)    THEN I = PMax
+'IF (I < (-PMax)) THEN I = -PMax
+
+'P = P MIN PMax
+'P = P MAX (-PMax)
+'I = I MIN IMax
+'I = I MAX (-IMax)
+'D = D MIN DMax
+'D = D MAX (-DMax)
+
+PID_Output = (P+I+D)/Div
+
+LError = Error
+RETURN
+
+
+
+'**************************************************************
+'*****************************Kill*****************************
+'**************************************************************
+
+Kill:
+       AUXIO
+       IF (IN0 = 1) THEN GOTO Redlight
+       IF (IN1 = 1) THEN GOTO Redlight
+       IF (IN2 = 1) THEN GOTO Redlight
+       IF (IN3 = 1) THEN GOTO Redlight
+
+
+       IF IN14 = 0 THEN
+        PAUSE 20
+        IF IN14 = 0 THEN
+          GOTO Redlight
+        ENDIF
+       ENDIF
+
+       RETURN
+
+Redlight:
+          GOSUB Green
+
+          MAINIO
+          SEROUT MotR, Bmode, ["!G ",SDEC ((0)<<3),CR]
+          SEROUT MotL, Bmode, ["!G ",SDEC ((0)<<3),CR]
+
+          AUXIO
+
+          SEROUT 15,2,[27,115]
+          SEROUT 15,2,[27,76,0,0,"     DEAD DEAD     "]
+          SEROUT 15,2,[27,76,0,1,"       ", BIN5 IROut, "        "]
+          SEROUT 15,2,[27,76,0,2,"       ", "     ",  "        "]
+          SEROUT 15,2,[27,76,0,3,"                    "]
+          LOW 14
+          PAUSE 100
+          GOTO redlight
+
+
+'**************************************************************************
+'**************************************************************************
+'*********Motor Control****************************************************
+
+Drive:
+'uncomment if Display routine is removed
+'PAUSE DriveDelay
+
+NewSpdRt = 127 - PID_Output
+NewSpdLeft = 127 + PID_Output
+
+'Displays debug information on Serial LCD
+AUXIO
+SEROUT 15,2,[27,115]
+SEROUT 15,2,[27,76,0,0,"Rt:   ",DEC NewSpdRt,   "   "]
+SEROUT 15,2,[27,76,0,1,"Left: ",DEC NewSpdLeft, "   "]
+
+SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROut]
+
+MAINIO
+SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
+SEROUT MotL, Bmode, ["!G ",SDEC ((127-NewSpdLeft)<<3),CR]
+
+RETURN
+
+Green:
+  AUXIO
+  HIGH Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN
+
+Red:
+  AUXIO
+  LOW Green_LED
+  HIGH Red_LED
+  LOW Blue_LED
+RETURN
+
+Blue:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  HIGH Blue_LED
+RETURN
+
+LEDs_Off:
+  AUXIO
+  LOW Green_LED
+  LOW Red_LED
+  LOW Blue_LED
+RETURN

@@ -1,0 +1,23 @@
+' {$STAMP BS2p}
+' {$PBASIC 2.5}
+
+Blue_LED       CON 11
+Red_LED        CON 12
+Green_LED      CON 10
+
+main:
+AUXIO
+
+HIGH Blue_LED
+HIGH Red_LED
+HIGH Green_LED
+
+PAUSE 50
+
+LOW Blue_LED
+LOW Red_LED
+LOW Green_LED
+
+PAUSE 50
+
+GOTO main
