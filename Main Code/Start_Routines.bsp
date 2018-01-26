@@ -6,6 +6,7 @@ MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
 IRPause     CON        2           'Pause between reading sensor pins
+StartThresh CON        5           'time that will elapse before sensors can triggetr an exit from start routine
 
 
 ' --------------Variables------------------------
@@ -29,6 +30,8 @@ remoteCode  VAR        Byte        'Stores remote code
 P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
 P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
 Time        VAR        Word        'Button push time accumulator
+
+StartCount  VAR        Word        'Time since Routine began
 
 ' --------------Initializations------------------
 '
@@ -105,7 +108,7 @@ BackAttack:
 
 'Situation 3: Side-by-side, facing opposite directions, 1ft apart
 TurnKill:
-  FOR Delay = 1 TO 11              'Immediate 90 deg turn
+  FOR Delay = 1 TO 5              'Immediate 90 deg turn
     NewSpdRt = 255 - (SearchBit*255)     'Right should equal 15
     NewSpdLeft = 0 + (SearchBit*255)    'right should equal 230
     GOSUB Drive
@@ -124,7 +127,7 @@ ForwardSearch:
 
 'Situation 5, 6: Front-to-front, 1ft apart / touching
 Charge:
-  FOR Delay = 1 TO 20
+  FOR Delay = 1 TO 17
     NewSpdRt = 255
     NewSpdLeft = 255
     GOSUB Drive
@@ -134,6 +137,7 @@ Charge:
 
 'Situation 7, 8: Back-to-back, 1ft apart / touching
 OutAndBack:
+  SideBit = 1
   'go forward
   FOR Delay = 1 TO 13
     NewSpdRt = 255
@@ -197,15 +201,16 @@ Side45:
 'Situation 11: Back-to-Back, 1ft apart / touching
 
 Back180:
-  FOR Delay = 1 TO (10 + (SearchBit*5))              '180 deg turn in place
-    NewSpdLeft = 0 + (SearchBit*255)
-    NewSpdRt = 255 - (SearchBit*255)
-    GOSUB Drive
-  NEXT
+  SideBit = 1
+  'FOR Delay = 1 TO (10 + (SearchBit*5))              '180 deg turn in place
+  '  NewSpdLeft = 0 + (SearchBit*255)
+  '  NewSpdRt = 255 - (SearchBit*255)
+  '  GOSUB Drive
+  'NEXT
 
-  FOR Delay = 1 TO 19              'go forward
-    NewSpdRt = 255
-    NewSpdLeft = 255
+  FOR Delay = 1 TO 10              'go forward
+    NewSpdRt = 0'255
+    NewSpdLeft = 0'255
     GOSUB Drive
     GOSUB Sensors
   NEXT
@@ -215,6 +220,7 @@ Back180:
 'Situation 12: Back-to-Back, 1ft apart / touching
 
 BackLoop:                            'loops 90 degrees to the left
+  SideBit = 1
   FOR Delay = 1 TO 60
     NewSpdRt = 255 - (SearchBit*110)
     NewSpdLeft = 145 + (SearchBit*110)
@@ -261,6 +267,8 @@ BackCharge:
 
 
 Drive:
+
+
 GOSUB Kill
 
 'Displays debug information on Serial LCD
@@ -275,8 +283,8 @@ SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
 SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROutFront]
 SEROUT 15,2,[27,76,0,3,"IRBack:  ",BIN5 IROutBack]
 
-'SEROUT 15,2,[27,76,16,2,"F ",DEC HitCount_F]
-'SEROUT 15,2,[27,76,16,3,"B ",DEC HitCount_B]
+SEROUT 15,2,[27,76,16,2,"F ",DEC HitCount_F]
+SEROUT 15,2,[27,76,16,3,"B ",DEC HitCount_B]
 
 'PAUSE DriveDelay
 
@@ -357,6 +365,13 @@ PAUSE IRPause
 'Uncomment for debugging purposes, will blind the sensors
 'IRoutFront = 31
 'IRoutBack = 31
+
+'if the start routine has been started very recently, blind the sensors
+IF StartCount < StartThresh THEN
+  StartCount = StartCount + 1
+  IRoutFront = 31
+  IRoutBack = 31
+ENDIF
 
 'Check for sensor hits on three center front sensors
 IF (IRoutFront.BIT1 = 0) OR (IRoutFront.BIT2 = 0) OR (IRoutFront.BIT3 = 0) THEN
