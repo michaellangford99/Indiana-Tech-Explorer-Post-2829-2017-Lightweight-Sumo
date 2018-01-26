@@ -6,7 +6,8 @@ MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
 IRPause     CON        2           'Pause between reading sensor pins
-
+Reaction    CON        15          'smoothing value added to all turning commands.
+                                   'the smaller (or more negative) a value, the harder thr robot will turn
 
 ' --------------Variables------------------------
 '
@@ -29,6 +30,8 @@ remoteCode  VAR        Byte        'Stores remote code
 P7bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 7)
 P4bwrk      VAR        Word        'Workspace for selection pushbuttons (pin 6)
 Time        VAR        Word        'Button push time accumulator
+
+StartCount  VAR        Word        'Time since Routine began
 
 ' --------------Initializations------------------
 '
@@ -70,6 +73,10 @@ Green_LED      CON 10
 '**************************************************************************
 '***************Main Program***********************************************
 
+'uncomment to test start routines
+'DO
+'GOSUB Redlight
+'LOOP
 
 Main:
 GOSUB Sensors
@@ -275,7 +282,6 @@ SearchBit = 0
 GOTO F_Search
 
 
-'FIXME!!! TURNS WAY TO WIDE
 F_Search:           '****************Search to right if SearchBit = 1, Search to left if SearchBit = 0
 NewSpdLeft  = 150+(SearchBit*50)
 NewSpdRt = 200-(SearchBit*50)
@@ -291,13 +297,13 @@ RETURN
 F_HardRight:        '****************Hard right****************
 SearchBit = 1
 NewSpdLeft  = 255
-NewSpdRt = 135
+NewSpdRt = 135 + Reaction
 RETURN
 
 
 F_HardLeft:         '****************Hard left****************
 SearchBit = 0
-NewSpdLeft  = 135
+NewSpdLeft  = 135 + Reaction
 NewSpdRt = 255
 RETURN
 
@@ -305,13 +311,13 @@ RETURN
 F_Right:            '****************Right****************
 SearchBit = 1
 NewSpdLeft  = 255
-NewSpdRt = 160
+NewSpdRt = 160 + Reaction
 RETURN
 
 
 F_Left:             '****************Left****************
 SearchBit = 0
-NewSpdLeft  = 160
+NewSpdLeft  = 160 + Reaction
 NewSpdRt = 255
 RETURN
 
@@ -319,13 +325,13 @@ RETURN
 F_EasyRight:        '****************Easy right****************
 SearchBit = 1
 NewSpdLeft  = 255
-NewSpdRt = 185
+NewSpdRt = 185 + Reaction
 RETURN
 
 
 F_EasyLeft:         '****************Easy left****************
 SearchBit = 0
-NewSpdLeft  = 185
+NewSpdLeft  = 185 + Reaction
 NewSpdRt = 255
 RETURN
 
@@ -333,13 +339,13 @@ RETURN
 F_SlowRight:        '****************Slow right****************
 SearchBit = 1
 NewSpdLeft  = 255
-NewSpdRt = 100
+NewSpdRt = 100 + Reaction
 RETURN
 
 
 F_SlowLeft:         '****************Slow left****************
 SearchBit = 0
-NewSpdLeft  = 100
+NewSpdLeft  = 100 + Reaction
 NewSpdRt = 255
 RETURN
 
@@ -374,7 +380,7 @@ RETURN
 
 B_HardRight:        '****************Hard right****************
 SearchBit = 1
-NewSpdLeft  = 120
+NewSpdLeft  = 120 - Reaction
 NewSpdRt = 0
 RETURN
 
@@ -382,27 +388,27 @@ RETURN
 B_HardLeft:         '****************Hard left****************
 SearchBit = 0
 NewSpdLeft  = 0
-NewSpdRt = 120
+NewSpdRt = 120 - Reaction
 RETURN
 
 
 B_Right:            '****************Right****************
 SearchBit = 1
-NewSpdLeft  = 255
-NewSpdRt = 160
+NewSpdLeft  = 95 - Reaction
+NewSpdRt = 0
 RETURN
 
 
 B_Left:             '****************Left****************
 SearchBit = 0
 NewSpdLeft  = 0
-NewSpdRt = 95
+NewSpdRt = 95 - Reaction
 RETURN
 
 
 B_EasyRight:        '****************Easy right****************
 SearchBit = 1
-NewSpdLeft  = 70
+NewSpdLeft  = 70 - Reaction
 NewSpdRt = 0
 RETURN
 
@@ -410,13 +416,13 @@ RETURN
 B_EasyLeft:         '****************Easy left****************
 SearchBit = 0
 NewSpdLeft  = 0
-NewSpdRt = 70
+NewSpdRt = 70 - Reaction
 RETURN
 
 
 B_SlowRight:        '****************Slow right****************
 SearchBit = 1
-NewSpdLeft  = 155
+NewSpdLeft  = 155 - Reaction
 NewSpdRt = 0
 RETURN
 
@@ -424,11 +430,8 @@ RETURN
 B_SlowLeft:         '****************Slow left****************
 SearchBit = 0
 NewSpdLeft  = 0
-NewSpdRt = 155
+NewSpdRt = 155 - Reaction
 RETURN
-
-
-
 
 '**************************************************************
 '*****************************Kill*****************************
