@@ -15,12 +15,10 @@ IR_FRONT_MRIGHT CON      10303
 IR_FRONT_RIGHT  CON      10407
 
 IR_BACK_LEFT    CON      10725
-IR_BACK_MLEFT   CON      17610
+IR_BACK_MLEFT   CON      10303
 IR_BACK_MIDDLE  CON      10812
 IR_BACK_MRIGHT  CON      10303
 IR_BACK_RIGHT   CON      10407
-
-EEPROM_ADDRESS  CON      10
 
 kP     CON   4
 kI     CON   1
@@ -42,7 +40,7 @@ Delay       VAR        Byte        'Counter
 HitCount_F  VAR        Nib         'Hit Counter for Front Sensors
 HitCount_B  VAR        Nib         'Hit Counter for Back Sensors
 
-HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+HitMax      CON        12          'Number of hits recived on opposite side before direction will be changed
 
 irPulse     VAR        Word        'Stores pulse widths
 remoteCode  VAR        Word        'Stores remote code
@@ -96,14 +94,11 @@ Blue_LED       CON 11
 Red_LED        CON 12
 Green_LED      CON 10
 
+STORE 0
 
 'Check for reset
 AUXIO
 IF (IN5=0) OR (IN6=0) THEN
- READ EEPROM_ADDRESS, SideBit
- PUT 0, Pattern      'store Pattern in scratch RAM at address #0
- PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
- PUT 20, SideBit     'store SideBit in scratch RAM at address #20
  RUN 2
 ENDIF
 
@@ -208,17 +203,17 @@ Pushbutton:
 AUXIO
 IF IN5=0 THEN
   SearchBit=0         'Set searchbit to left
-  PUT 0, Pattern      'store Pattern in scratch RAM at address #0
-  PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
-  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
+  WRITE 0, Pattern      'store Pattern in EEPROM at address #0
+  WRITE 2, SearchBit   'store SearchBit in EEPROM at address #2
+  WRITE 4, SideBit     'store SideBit in EEPROM at address #4
   GOTO IRStart        'Wait to be started by Remote
 ENDIF
 AUXIO
 IF IN6=0 THEN
   SearchBit=1         'Set searchbit to right
-  PUT 0, Pattern      'store Pattern in scratch RAM at address #0
-  PUT 10, SearchBit   'store SearchBit in scratch RAM at address #10
-  PUT 20, SideBit     'store SideBit in scratch RAM at address #20
+  WRITE 0, Pattern      'store Pattern in EEPROM at address #0
+  WRITE 2, SearchBit   'store SearchBit in EEPROM at address #2
+  WRITE 4, SideBit     'store SideBit in EEPROM at address #4
   GOTO IRStart        'Wait to be started by Remote
 ENDIF
 
@@ -253,19 +248,19 @@ Display:
       AUXIO
       IF Pattern=1 THEN
         SEROUT 15,2,[27,115]
-        SEROUT 15,2,[27,76,2,0,"SSSBackAForward"]
+        SEROUT 15,2,[27,76,2,0,"SSBackAForward"]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
       IF Pattern=2 THEN
         SEROUT 15,2,[27,115]
-        SEROUT 15,2,[27,76,2,0,"  SSOTurnKill   "]
+        SEROUT 15,2,[27,76,2,0,"   SSTurnKill   "]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
       IF Pattern=3 THEN
         SEROUT 15,2,[27,115]
-        SEROUT 15,2,[27,76,2,0,"SSOForwardSearch"]
+        SEROUT 15,2,[27,76,2,0," SSForwardSearch"]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
@@ -307,7 +302,7 @@ Display:
       ENDIF
       IF Pattern=10 THEN
         SEROUT 15,2,[27,115]
-        SEROUT 15,2,[27,76,2,0,"  SSSTurnKill   "]
+        SEROUT 15,2,[27,76,2,0,"   SSTurnKill   "]
         SEROUT 15,2,[27,76,7,1,BIN5 IROutFront]
         SEROUT 15,2,[27,76,7,2,BIN5 IROutBack]
       ENDIF
@@ -396,8 +391,8 @@ DO                                           ' Main DO...LOOP
     ENDSELECT
 
   'To disable IR Start and begin immediatey, uncomment these lines:
-  GOSUB LEDs_Off
-  RUN 1
+  'GOSUB LEDs_Off
+  'RUN 1
 
 
 LOOP                                         ' Repeat main DO...LOOP

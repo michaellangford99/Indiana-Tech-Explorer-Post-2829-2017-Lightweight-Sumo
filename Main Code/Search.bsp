@@ -5,9 +5,9 @@ MotR        CON        8           'Serial out pin for right motor
 MotL        CON        9           'Serial out pin for left motor
 Bmode       CON        16385       'Constant for 115,200 baud, 8 bit, no parity, inverted
 DriveDelay  CON        6           'Delay to scale start routine times
-IRPause     CON        2           'Pause between reading sensor pins
+IRPause     CON        0           'Pause between reading sensor pins
 Reaction    CON        15          'smoothing value added to all turning commands.
-                                   'the smaller (or more negative) a value, the harder the robot will turn
+
 IR_FRONT_LEFT   CON      10725
 IR_FRONT_MLEFT  CON      10615
 IR_FRONT_MIDDLE CON      10812
@@ -15,16 +15,14 @@ IR_FRONT_MRIGHT CON      10303
 IR_FRONT_RIGHT  CON      10407
 
 IR_BACK_LEFT    CON      10725
-IR_BACK_MLEFT   CON      17610
+IR_BACK_MLEFT   CON      10303
 IR_BACK_MIDDLE  CON      10812
 IR_BACK_MRIGHT  CON      10303
 IR_BACK_RIGHT   CON      10407
 
-EEPROM_ADDRESS  CON      10
-
-kP     CON   4
-kI     CON   1
-kD     CON   1
+kP     CON   3
+kI     CON   0
+kD     CON   0
 
 Div    CON  1
 
@@ -42,7 +40,7 @@ Delay       VAR        Byte        'Counter
 HitCount_F  VAR        Nib         'Hit Counter for Front Sensors
 HitCount_B  VAR        Nib         'Hit Counter for Back Sensors
 
-HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+HitMax      CON        12          'Number of hits recived on opposite side before direction will be changed
 
 P           VAR        Word
 D           VAR        Word
@@ -89,6 +87,12 @@ IRoutBack = 0
 Blue_LED       CON 11
 Red_LED        CON 12
 Green_LED      CON 10
+
+STORE 0
+
+READ 0, Pattern                   'Retrieve the existing start routine from EEPROM
+READ 2, SearchBit                 'Retrieve the existing search bit from EEPROM
+READ 4, SideBit                   'Retrieve the existing direction bit from EEPROM
 
 '**************************************************************************
 '**************************************************************************
@@ -190,7 +194,9 @@ Main:
    HitCount_B = 0
    HitCount_F = 0
    'Write new direction bit to EEPROM, at address #0
-   WRITE EEPROM_ADDRESS, SideBit
+   WRITE 0, Pattern      'store Pattern in EEPROM at address #0
+   WRITE 2, SearchBit   'store SearchBit in EEPROM at address #2
+   WRITE 4, SideBit     'store SideBit in EEPROM at address #4
    GOTO Main
   ENDIF
 
@@ -201,8 +207,9 @@ Main:
    HitCount_B = 0
    HitCount_F = 0
 
-   'Write new direction bit to EEPROM, at address #0
-   WRITE EEPROM_ADDRESS, SideBit
+   WRITE 0, Pattern      'store Pattern in EEPROM at address #0
+   WRITE 2, SearchBit   'store SearchBit in EEPROM at address #2
+   WRITE 4, SideBit     'store SideBit in EEPROM at address #4
    GOTO Main
   ENDIF
 
@@ -260,6 +267,39 @@ GOTO main
 '*************Check Sensors************************************************
 
 Sensors:
+
+MAINIO
+
+'Back Plow Sensors
+IROutBack = 0
+
+LOW 10
+LOW 11
+LOW 12
+LOW 13
+LOW 14
+
+FREQOUT 10, 2, IR_BACK_RIGHT   'Right Back IR sensor
+IROutBack.BIT0 = IN15
+LOW 10
+PAUSE IRPause
+FREQOUT 11, 2, IR_BACK_MRIGHT   'Right Center Back IR sensor
+IROutBack.BIT1 = IN15
+LOW 11
+PAUSE IRPause
+FREQOUT 12, 2, IR_BACK_MIDDLE   'Center Back IR sensor
+IROutBack.BIT2 = IN15
+LOW 12
+PAUSE IRPause
+FREQOUT 13, 2, IR_BACK_MLEFT   'Left Center Back IR sensor
+IROutBack.BIT3 = IN15
+LOW 13
+PAUSE IRPause
+FREQOUT 14, 2, IR_BACK_LEFT   'Left Back IR sensor
+IROutBack.BIT4 = IN15
+LOW 14
+PAUSE IRPause
+
 MAINIO
 
 'Front Plow Sensors
@@ -292,35 +332,6 @@ IROutFront.BIT0 = IN6
 LOW 5
 PAUSE IRPause
 
-'Back Plow Sensors
-IROutBack = 0
-
-LOW 10
-LOW 11
-LOW 12
-LOW 13
-LOW 14
-
-FREQOUT 10, 2, IR_BACK_RIGHT   'Right Back IR sensor
-IROutBack.BIT0 = IN15
-LOW 10
-PAUSE IRPause
-FREQOUT 11, 2, IR_BACK_MRIGHT   'Right Center Back IR sensor
-IROutBack.BIT1 = IN15
-LOW 11
-PAUSE IRPause
-FREQOUT 12, 2, IR_BACK_MIDDLE   'Center Back IR sensor
-IROutBack.BIT2 = IN15
-LOW 12
-PAUSE IRPause
-FREQOUT 13, 2, IR_BACK_MLEFT   'Left Center Back IR sensor
-IROutBack.BIT3 = IN15
-LOW 13
-PAUSE IRPause
-FREQOUT 14, 2, IR_BACK_LEFT   'Left Back IR sensor
-IROutBack.BIT4 = IN15
-LOW 14
-PAUSE IRPause
 
 'Uncomment for debugging purposes, will blind the sensors
 'IRoutFront = 31

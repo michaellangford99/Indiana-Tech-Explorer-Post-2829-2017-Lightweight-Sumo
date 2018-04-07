@@ -15,7 +15,7 @@ IR_FRONT_MRIGHT CON      10303
 IR_FRONT_RIGHT  CON      10407
 
 IR_BACK_LEFT    CON      10725
-IR_BACK_MLEFT   CON      17610
+IR_BACK_MLEFT   CON      10303
 IR_BACK_MIDDLE  CON      10812
 IR_BACK_MRIGHT  CON      10303
 IR_BACK_RIGHT   CON      10407
@@ -40,7 +40,7 @@ Delay       VAR        Byte        'Counter
 HitCount_F  VAR        Nib         'Hit Counter for Front Sensors
 HitCount_B  VAR        Nib         'Hit Counter for Back Sensors
 
-HitMax      CON        8           'Number of hits recived on opposite side before direction will be changed
+HitMax      CON        12          'Number of hits recived on opposite side before direction will be changed
 
 irPulse     VAR        Word        'Stores pulse widths
 remoteCode  VAR        Word        'Stores remote code
@@ -90,41 +90,43 @@ Blue_LED       CON 11
 Red_LED        CON 12
 Green_LED      CON 10
 
+STORE 0
+
 '**************************************************************************
 '**************************************************************************
 '**************************************************************************
 '***************Main Program***********************************************
 
-GET 0, Pattern                    'Retrieve the existing start routine from Scratch RAM
-GET 10, SearchBit                 'Retrieve the existing search bit from Scratch RAM
-GET 20, SideBit                   'Retrieve the existing direction bit from Scratch RAM
-IF Pattern = 0 THEN RUN 2         'If there is nothing in Scratch Ram, then go into Search + Kill
+READ 0, Pattern                    'Retrieve the existing start routine from EEPROM
+READ 2, SearchBit                 'Retrieve the existing search bit from EEPROM
+SideBit = 0   'clear it                   'Retrieve the existing direction bit from EEPROM
+IF Pattern = 0 THEN GOTO Start_Search         'If there is nothing in Scratch Ram, then go into Search + Kill
 
-BRANCH Pattern, [BackAttack, BackAttack, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head, Side45, Back180, BackLoop,SideLoop,BackCharge]
+BRANCH Pattern, [BackAForward, BackAForward, TurnKill, ForwardSearch, Charge, OutAndBack, Head2Head, Side45, Back180, BackLoop,SideLoop,BackCharge]
 
 'Situations 1, 2: Side-by-side, facing same direction, 1ft apart / touching
-BackAttack:
+BackAForward:
   FOR Delay = 1 TO 12              'Quick backup with slight turn
     NewSpdRt = 127 - (SearchBit*127)
     NewSpdLeft = 0 + (SearchBit*127)
     GOSUB Drive
   NEXT
 
-  FOR Delay = 1 TO 20              'Charge back
+  FOR Delay = 1 TO 12              'Charge back
     NewSpdRt = 0
     NewSpdLeft = 0
     GOSUB Drive
     GOSUB Sensors
   NEXT
 
-  FOR Delay = 1 TO 30              'Charge forward
+  FOR Delay = 1 TO 20              'Charge forward
     NewSpdRt = 255
     NewSpdLeft = 255
     GOSUB Drive
     GOSUB Sensors
   NEXT
   'SearchBit = SearchBit ^ 1
-  RUN 2                            'Search Mode
+  GOTO Start_Search                            'Search Mode
 
 'Situation 3: Side-by-side, facing opposite directions, 1ft apart
 TurnKill:
@@ -134,7 +136,7 @@ TurnKill:
     GOSUB Drive
     GOSUB Sensors
   NEXT
-  RUN 2                            'Search Mode
+  GOTO Start_Search                            'Search Mode
 
 'Situation 4: Side-by-side, facing opposite directions, touching
 ForwardSearch:
@@ -143,7 +145,7 @@ ForwardSearch:
     NewSpdLeft = 240
     GOSUB Drive
   NEXT
-  RUN 2                            'Search Mode
+  GOTO Start_Search                            'Search Mode
 
 'Situation 5, 6: Front-to-front, 1ft apart / touching
 Charge:
@@ -153,7 +155,7 @@ Charge:
     GOSUB Drive
     GOSUB Sensors
   NEXT
-  RUN 2
+  GOTO Start_Search
 
 'Situation 7, 8: Back-to-back, 1ft apart / touching
 OutAndBack:
@@ -180,7 +182,7 @@ OutAndBack:
     GOSUB Drive
     GOSUB Sensors
   NEXT
-  RUN 2
+  GOTO Start_Search
 
 'Situation 9: Front-to-front, 1ft apart / touching
 Head2Head:
@@ -197,7 +199,7 @@ Head2Head:
   NEXT
 
   'SearchBit = SearchBit ^ 1 'we want it here for now
-  RUN 2
+  GOTO Start_Search
 
 'Situation 10: Front-to-front, 1ft apart / touching
 
@@ -216,7 +218,7 @@ Side45:
   NEXT
 
   'SearchBit = SearchBit ^ 1
-  RUN 2
+  GOTO Start_Search
 
 'Situation 11: Back-to-Back, 1ft apart / touching
 
@@ -235,7 +237,7 @@ Back180:
     GOSUB Sensors
   NEXT
 
-  RUN 2
+  GOTO Start_Search
 
 'Situation 12: Back-to-Back, 1ft apart / touching
 
@@ -254,7 +256,7 @@ BackLoop:                            'loops 90 degrees to the left
     GOSUB Sensors
   NEXT
 
-  RUN 2
+  GOTO Start_Search
 
 
 'Situations 13: Side-by-side, facing same direction, 1ft apart / touching
@@ -266,7 +268,7 @@ SideLoop:
     GOSUB Sensors
   NEXT
 
-  RUN 2                            'Search Mode
+  GOTO Start_Search                            'Search Mode
 
 
 'Situation 14: Back-to-Back, 1ft apart / touching
@@ -278,7 +280,7 @@ BackCharge:
     GOSUB Drive
     GOSUB Sensors
   NEXT
-  RUN 2
+  GOTO Start_Search
 
 
 '**************************************************************************
@@ -291,20 +293,19 @@ Drive:
 
 GOSUB Kill
 
-'Displays debug information on Serial LCD
+'Displays information on Serial LCD
 AUXIO
 SEROUT 15,2,[27,115]
-SEROUT 15,2,[27,76,0,0,"Rt:   ",DEC NewSpdRt,   "   "]
-SEROUT 15,2,[27,76,0,1,"Left: ",DEC NewSpdLeft, "   "]
+SEROUT 15,2,[27,76,0,0,"Rt: ",DEC NewSpdRt,   "   "]
+SEROUT 15,2,[27,76,0,1,"LT: ",DEC NewSpdLeft, "   "]
 
-SEROUT 15,2,[27,76,10,0,"Side:   ", BIN1 SideBit]
-SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
+'SEROUT 15,2,[27,76,10,0,"Side:   ", BIN1 SideBit]
+'SEROUT 15,2,[27,76,10,1,"Search: ", BIN1 SearchBit]
 
-SEROUT 15,2,[27,76,0,2,"IRFront: ",BIN5 IROutFront]
-SEROUT 15,2,[27,76,0,3,"IRBack:  ",BIN5 IROutBack]
+SEROUT 15,2,[27,76,0,2,"F: ",BIN5 IROutFront, " B: ", BIN5 IROutBack]
 
-SEROUT 15,2,[27,76,16,2,"F ",DEC HitCount_F]
-SEROUT 15,2,[27,76,16,3,"B ",DEC HitCount_B]
+'SEROUT 15,2,[27,76,0,3,"F",DEC HitCount_F, "   "]
+'SEROUT 15,2,[27,76,5,3,"B",DEC HitCount_B, "   "]
 
 'PAUSE DriveDelay
 
@@ -313,6 +314,21 @@ SEROUT MotR, Bmode, ["!G ",SDEC ((NewSpdRt-127)<<3),CR]
 SEROUT MotL, Bmode, ["!G ",SDEC ((127-NewSpdLeft)<<3),CR]
 
 RETURN
+
+'**************************************************************************
+'**************************************************************************
+'*************Start Search*************************************************
+
+Start_Search:
+
+WRITE 0, Pattern      'store Pattern in EEPROM at address #0
+WRITE 2, SearchBit   'store SearchBit in EEPROM at address #2
+WRITE 4, SideBit     'store SideBit in EEPROM at address #4
+
+'debug dumps the sidebit, pattern, and searchbit read from EEPROM
+'DEBUG "SideBit: ", DEC SideBit, CR, "SearchBit: ", DEC SearchBit, CR, "Pattern: ", DEC Pattern
+
+RUN 2
 
 
 '**************************************************************************
@@ -395,16 +411,16 @@ IF StartCount < StartThresh THEN
 ENDIF
 
 'Check for sensor hits on three center front sensors
-IF (IRoutFront.BIT1 = 0) OR (IRoutFront.BIT2 = 0) OR (IRoutFront.BIT3 = 0) THEN
- SideBit=0
- RUN 2
-ENDIF
+'IF (IRoutFront.BIT1 = 0) OR (IRoutFront.BIT2 = 0) OR (IRoutFront.BIT3 = 0) THEN
+' SideBit=0
+' GOTO Start_Search
+'ENDIF
 
 'Check for sensor hits on three center back sensors
-IF (IRoutBack.BIT1 = 0) OR (IRoutBack.BIT2 = 0) OR (IRoutBack.BIT3 = 0) THEN
- SideBit=1
- RUN 2
-ENDIF
+'IF (IRoutBack.BIT1 = 0) OR (IRoutBack.BIT2 = 0) OR (IRoutBack.BIT3 = 0) THEN
+' SideBit=1
+' GOTO Start_Search
+'ENDIF
 
 RETURN
 
